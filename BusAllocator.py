@@ -1,6 +1,6 @@
 from GridParameters import GridParameters
 import argparse
-
+import matplotlib as plt
 
 
 class Bus:
@@ -39,8 +39,8 @@ class BusAllocator:
     def NetsInFP(self, footprint):
         PadAndNet = []
         for pad in footprint.pads:
-            if pad.net is not None:
-                PadAndNet.append((pad, pad.net.number))
+            if pad.netID is not None:
+                PadAndNet.append((pad, pad.netID))
         return PadAndNet
 
 
@@ -85,15 +85,15 @@ class BusAllocator:
                     end_sum_x = 0
                     end_sum_y = 0
                     for pin in StartBusPins_temp:
-                        start_sum_x += pin.position.X
-                        start_sum_y += pin.position.Y
+                        start_sum_x += pin.position[0]
+                        start_sum_y += pin.position[1]
 
                     Bus_start_x = start_sum_x/len(StartBusPins_temp)
                     Bus_start_y = start_sum_y/len(StartBusPins_temp)
                     for pin in EndBusPins_temp:
 
-                        end_sum_x += pin.position.X
-                        end_sum_y += pin.position.Y
+                        end_sum_x += pin.position[0]
+                        end_sum_y += pin.position[1]
 
                     Bus_end_x = end_sum_x/len(EndBusPins_temp)
                     Bus_end_y = end_sum_y/len(EndBusPins_temp) 

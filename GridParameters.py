@@ -26,6 +26,11 @@ class Net:
         self.netClass = net_class
         self.padList = []
 
+class Footprint:
+    def __init__(self,pads,position):
+        self.pads = pads
+        self.position = position
+
 
 class NetClass:
     def __init__(self, track_width, microvia_diameter, microvia_drill, clearance, min_hole_clearance):
@@ -108,7 +113,7 @@ class GridParameters:
         self.pad_obstacles = []
         self.footprint_list = []
         for footprint in board.footprints:
-            self.footprint_list.append(footprint)
+            pad_list = []
             for pad in footprint.pads:
                 if footprint.position.angle is None:
                     theta = 0
@@ -135,6 +140,10 @@ class GridParameters:
                 else:
                     board_pad = Pad(pad_pos, footprint.layer, pad_shape, pad_size, pad.type, None)
                     self.pad_obstacles.append(board_pad)
+                pad_list.append(board_pad)
+            fp = Footprint(pad_list,footprint.position)
+            self.footprint_list.append(fp)
+            
 
         self.gridSize = [to_grid_coord_round_down(self.dia_pos_1[0] - self.dia_pos_0[0]),
                          to_grid_coord_round_down(self.dia_pos_1[1] - self.dia_pos_0[1]),
