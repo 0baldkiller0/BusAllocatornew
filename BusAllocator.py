@@ -1,6 +1,6 @@
 from GridParameters import GridParameters
 import argparse
-import matplotlib as plt
+import matplotlib.pyplot as plt
 
 
 class Bus:
@@ -110,10 +110,42 @@ class BusAllocator:
 
 def allocator_arguments():
     parser = argparse.ArgumentParser('BusAllocator')
-    parser.add_argument('--kicad_pcb', type=str, dest='kicad_pcb', default="bench1/bm1.unrouted.kicad_pcb")
-    parser.add_argument('--kicad_pro', type=str, dest='kicad_pro', default="bench1/bm1.unrouted.kicad_pro")
-    parser.add_argument('--save_file', type=str, dest='save_file', default="bench1/bm1.routed.kicad_pcb")
+    parser.add_argument('--kicad_pcb', type=str, dest='kicad_pcb', default="bench4/bm4.unrouted.kicad_pcb")
+    parser.add_argument('--kicad_pro', type=str, dest='kicad_pro', default="bench4/bm4.unrouted.kicad_pro")
+    parser.add_argument('--save_file', type=str, dest='save_file', default="bench4/bm4.routed.kicad_pcb")
     return parser.parse_args()
+
+class Drawer():
+    def __init__(self, buslist, gridparameters:GridParameters):
+        self.buslist = buslist
+        self.gridparameters = gridparameters
+    
+    def draw(self):
+        sizex = abs(self.gridparameters.dia_pos_1[0] - self.gridparameters.dia_pos_0[0]) * self.gridparameters.gridSize[0]
+        sizey = abs(self.gridparameters.dia_pos_1[1] - self.gridparameters.dia_pos_0[1]) * self.gridparameters.gridSize[1] 
+        print(sizex,sizey)
+        fig,ax = plt.subplots(figsize = (5,5))
+        plt.axis((0,500,500,0)) #bench1 1200,650 bench2 700,300 bench4 500,500
+        padx = []
+        pady = []
+        for fp in self.gridparameters.footprint_list:
+            for pad in fp.pads:
+                padx.append(pad.position[0])
+                pady.append(pad.position[1])
+
+        plt.scatter(padx,pady,marker='.',linewidths= 0.1)
+
+        for bus in self.buslist:
+            busx = [bus.Bus_start[0],bus.Bus_end[0]]
+            busy = [bus.Bus_start[1],bus.Bus_end[1]]
+            plt.plot(busx,busy, linewidth = bus.BusWidth, alpha = 0.5)
+
+
+#        ax.axis('off')
+#        ax.plot([0,0], [0,8], color = 'black')
+        plt.savefig('figs/bench4.png')
+        plt.show()
+
 
 
 
@@ -127,6 +159,8 @@ if __name__ == '__main__':
     busallocator.allocate()
     for Bus in busallocator.BusList:
         print(Bus.BusID,Bus.Bus_start,Bus.Bus_end,Bus.BusWidth)
+    drawer = Drawer(busallocator.BusList, gridParameters)
+    drawer.draw()
 
 
 
