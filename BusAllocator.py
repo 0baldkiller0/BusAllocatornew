@@ -13,11 +13,13 @@ class Bus:
         self.BusWidth = BusWidth
 
 class BusAllocator:
-    def __init__(self, clearance, trackwidth, grid_parameter: GridParameters):
+    def __init__(self, grid_parameter: GridParameters):
+        self.netclass = grid_parameter.netClass
         self.NetList = grid_parameter.netList
         self.FootprintList = grid_parameter.footprint_list
-        self.clearance = clearance
-        self.trackwidth = trackwidth
+        self.parameters = grid_parameter
+#        self.clearance = clearance
+#        self.trackwidth = trackwidth
         self.BusList = []
 
         
@@ -75,9 +77,11 @@ class BusAllocator:
                     for n in  range(len(PadNet2) - 1):
                         net2 = PadNet2[n][1]
                         if net1 == net2 :
+                            netclass = self.parameters.netid_to_class[net1]
+                            clearance_with_track = netclass.clearance_with_track
                             StartBusPins_temp.append(PadNet1[m][0])
                             EndBusPins_temp.append(PadNet2[n][0])
-                            BusWidth_temp += self.clearance + self.trackwidth
+                            BusWidth_temp += clearance_with_track
                             count +=1
                 if count >= 2:
                     start_sum_x = 0
@@ -114,14 +118,12 @@ def allocator_arguments():
 
 
 if __name__ == '__main__':
-    clearance = 100 
-    trackwidth = 23
     arg = allocator_arguments()
     benchmark_file = arg.kicad_pcb
     project_file = arg.kicad_pro
     save_file = arg.save_file
     gridParameters = GridParameters(benchmark_file, project_file, save_file)
-    busallocator = BusAllocator(clearance, trackwidth, gridParameters)
+    busallocator = BusAllocator(gridParameters)
     busallocator.allocate()
     for Bus in busallocator.BusList:
         print(Bus.BusID,Bus.Bus_start,Bus.Bus_end,Bus.BusWidth)
