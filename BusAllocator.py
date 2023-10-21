@@ -18,8 +18,6 @@ class BusAllocator:
         self.NetList = grid_parameter.netList
         self.FootprintList = grid_parameter.footprint_list
         self.parameters = grid_parameter
-#        self.clearance = clearance
-#        self.trackwidth = trackwidth
         self.BusList = []
 
         
@@ -55,35 +53,52 @@ class BusAllocator:
         """
 
         MFPList=self.GenerateMultipadFPList()
-#        StartBusPins = []
-#        EndBusPins = []
-#        BusWidth = 0
         BusID = 0
+        with open('debug.txt', 'w') as file:
+            file.write('')
 
         for i in range(len(MFPList)):
             PadNet1 = self.NetsInFP(MFPList[i])
             for j in range(len(MFPList)-1-i):
                 StartBusPins_temp = []
                 EndBusPins_temp = []
+                StartID_temp = []
+                EndID_temp = []
                 BusWidth_temp = 0
                 count = 0
 
                 PadNet2 = self.NetsInFP(MFPList[i+j+1])
-#                for pad in MFPList[i].pads:
-#                    if pad.net in
 
-                for m in range(len(PadNet1) - 1):
+                with open('debug.txt', 'a') as file:
+                    file.write('({},{},{},{})'.format(MFPList[i].fpname, MFPList[i].position, MFPList[i+j+1].fpname, MFPList[i+j+1].position))
+
+                for m in range(len(PadNet1)):
                     net1 = PadNet1[m][1]
-                    for n in  range(len(PadNet2) - 1):
+                    for n in  range(len(PadNet2)):
                         net2 = PadNet2[n][1]
-                        if net1 == net2 :
+                        with open('debug.txt' ,'a') as file:
+                            file.write('({},{})'.format(self.parameters.id_to_name[net1],self.parameters.id_to_name[net2]))
+                        if (net1 == net2) & (net1 not in StartID_temp) & (net2 not in EndID_temp):
                             netclass = self.parameters.netid_to_class[net1]
-                            clearance_with_track = netclass.clearance_with_track
+                            clearance_with_track = netclass.clearance + netclass.track_width
+                            StartID_temp.append(net1)
+                            EndID_temp.append(net2)
                             StartBusPins_temp.append(PadNet1[m][0])
                             EndBusPins_temp.append(PadNet2[n][0])
                             BusWidth_temp += clearance_with_track
                             count +=1
+                                        
+                            break
+                with open('debug.txt' ,'a') as file:
+                            file.write('\n')
                 if count >= 2:
+                    with open('debug.txt' ,'a') as file:
+                        file.write('the same net:')
+                    for pin in StartBusPins_temp:
+                        with open('debug.txt' ,'a') as file:
+                            file.write('{} '.format(self.parameters.id_to_name[pin.netID]))
+                    with open('debug.txt' ,'a') as file:
+                        file.write('\n')
                     start_sum_x = 0
                     start_sum_y = 0
                     end_sum_x = 0
@@ -121,11 +136,14 @@ class Drawer():
         self.gridparameters = gridparameters
     
     def draw(self):
-        sizex = abs(self.gridparameters.dia_pos_1[0] - self.gridparameters.dia_pos_0[0]) * self.gridparameters.gridSize[0]
-        sizey = abs(self.gridparameters.dia_pos_1[1] - self.gridparameters.dia_pos_0[1]) * self.gridparameters.gridSize[1] 
+#        sizex = abs(self.gridparameters.dia_pos_1[0] - self.gridparameters.dia_pos_0[0]) * self.gridparameters.gridSize[0]
+#        sizey = abs(self.gridparameters.dia_pos_1[1] - self.gridparameters.dia_pos_0[1]) * self.gridparameters.gridSize[1]
+        #bench1 1200,650 bench2 700,300 bench4 500,500
+        sizex = 500
+        sizey = 500
         print(sizex,sizey)
-        fig,ax = plt.subplots(figsize = (5,5))
-        plt.axis((0,500,500,0)) #bench1 1200,650 bench2 700,300 bench4 500,500
+        fig,ax = plt.subplots(figsize = (sizex/100,sizey/100))
+        plt.axis((0,sizex,sizey,0)) 
         padx = []
         pady = []
         for fp in self.gridparameters.footprint_list:
@@ -141,8 +159,7 @@ class Drawer():
             plt.plot(busx,busy, linewidth = bus.BusWidth, alpha = 0.5)
 
 
-#        ax.axis('off')
-#        ax.plot([0,0], [0,8], color = 'black')
+
         plt.savefig('figs/bench4.png')
         plt.show()
 

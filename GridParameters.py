@@ -27,9 +27,10 @@ class Net:
         self.padList = []
 
 class Footprint:
-    def __init__(self,pads,position):
+    def __init__(self,pads,position,name):
         self.pads = pads
         self.position = position
+        self.fpname = name
 
 
 
@@ -142,7 +143,7 @@ class GridParameters:
                     board_pad = Pad(pad_pos, footprint.layer, pad_shape, pad_size, pad.type, None)
                     self.pad_obstacles.append(board_pad)
                 pad_list.append(board_pad)
-            fp = Footprint(pad_list,footprint.position)
+            fp = Footprint(pad_list,footprint.position, footprint.entryName)
             self.footprint_list.append(fp)
             
                 
@@ -153,7 +154,7 @@ class GridParameters:
         self.layers = layers_
         self.grLines = boundary_list
         self.netNum = len(net_list) - 1
-        self.netClassReal = project.netSetting.classes
+        self.netClassReal = project.netSetting.classes  #use it
         self.netClass = {}
         self.netid_to_class = {}
         for net_class in self.netClassReal:
@@ -162,14 +163,16 @@ class GridParameters:
                                                 self.netClassReal[net_class].microvia_drill,
                                                 self.netClassReal[net_class].clearance,
                                                 project.board.design_setting.rules.min_hole_clearance)
-        
+        self.id_to_name = {}
+        for net in net_list:
+            self.id_to_name[net.netID] = net.netName
        
         
         self.netList = net_list
         self.padclass_list = {} 
         for net in net_list:
             if net.netClass != None:
-                self.netid_to_class[net.netID] = self.netClass[net.netClass]
+                self.netid_to_class[net.netID] = self.netClassReal[net.netClass]
             else: continue
 
         board.to_file()
