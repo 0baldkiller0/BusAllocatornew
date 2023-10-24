@@ -27,10 +27,12 @@ class Net:
         self.padList = []
 
 class Footprint:
-    def __init__(self,pads,position,name):
+    def __init__(self,pads,position,name,dia0,dia1):
         self.pads = pads
         self.position = position
         self.fpname = name
+        self.dia_pos_0 = dia0
+        self.dia_pos_1 = dia1
 
 
 
@@ -61,6 +63,7 @@ class GridParameters:
         self.filename = kicad_pcb
         self.save_filename = save_kicad_pcb
         board = Board().from_file(kicad_pcb)
+        self.board = board
 
         project = KiCadPro().from_file(kicad_pro)
 
@@ -93,6 +96,7 @@ class GridParameters:
                 if self.dia_pos_1[1] < end_pos[1]:
                     self.dia_pos_1[1] = end_pos[1]
 
+
         layers = {}
         layers_ = {}
         i = 0
@@ -114,7 +118,25 @@ class GridParameters:
         # net_list.pop(0)
         self.pad_obstacles = []
         self.footprint_list = []
+        self.fp = board.footprints
         for footprint in board.footprints:
+            if len(footprint.graphicItems) == 3:
+                dia_points_list = footprint.graphicItems[2].coordinates
+            if footprint.position.angle is None:
+                theta = 0
+            else:
+                theta = footprint.position.angle * math.pi / 180
+            for i in range(len(dia_points_list)): #dia_points_list have 4 items
+                point = dia_points_list[i]
+                dx = point.X * math.cos(theta) + point.Y * math.sin(theta)
+                dy = point.Y * math.cos(theta) - point.X * math.sin(theta)
+                x = footprint.position.X + dx
+                y = footprint.position.Y + dy
+                if  (dx < 0) & (dy < 0):
+                    dia0 = (x,y)
+                if  (dx > 0) & (dy > 0):
+                    dia1 = (x,y)
+            
             pad_list = []
             for pad in footprint.pads:
                 if footprint.position.angle is None:
@@ -143,7 +165,7 @@ class GridParameters:
                     board_pad = Pad(pad_pos, footprint.layer, pad_shape, pad_size, pad.type, None)
                     self.pad_obstacles.append(board_pad)
                 pad_list.append(board_pad)
-            fp = Footprint(pad_list,footprint.position, footprint.entryName)
+            fp = Footprint(pad_list,footprint.position, footprint.entryName, dia0, dia1)
             self.footprint_list.append(fp)
             
                 
@@ -167,10 +189,14 @@ class GridParameters:
         for net in net_list:
             self.id_to_name[net.netID] = net.netName
        
+        self.netid_to_net = {}
+
+
         
         self.netList = net_list
         self.padclass_list = {} 
         for net in net_list:
+            self.netid_to_net[net.netID] = net
             if net.netClass != None:
                 self.netid_to_class[net.netID] = self.netClassReal[net.netClass]
             else: continue
