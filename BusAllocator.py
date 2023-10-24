@@ -163,7 +163,7 @@ class BusAllocator:
                         Bus_start_tmp = (Bus_start_x,Bus_start_y)
                         Bus_end_tmp = (Bus_end_x, Bus_end_y)
                         allocated_sp = self.AllocZone(MFPList[i].dia_pos_0,MFPList[i].dia_pos_1, [Bus_start_tmp])
-                        allocated_ep = self.AllocZone(MFPList[j].dia_pos_0,MFPList[j].dia_pos_1, [Bus_end_tmp])
+                        allocated_ep = self.AllocZone(MFPList[j+i+1].dia_pos_0,MFPList[j+i+1].dia_pos_1, [Bus_end_tmp])
                         for i in range(4):
                             if allocated_sp[i] is not None:
                                 if i == 0:
@@ -178,13 +178,13 @@ class BusAllocator:
                         for i in range(4):
                             if allocated_ep[i] is not None:
                                 if i == 0:
-                                    Bus_end = (Bus_end_tmp[0],MFPList[j].dia_pos_1[1])
+                                    Bus_end = (Bus_end_tmp[0],MFPList[j+i+1].dia_pos_1[1])
                                 elif i == 1:
-                                    Bus_end = (MFPList[j].dia_pos_1[0],Bus_end_tmp[1])
+                                    Bus_end = (MFPList[j+i+1].dia_pos_1[0],Bus_end_tmp[1])
                                 elif i == 2:
-                                    Bus_end = (Bus_end_tmp[0],MFPList[j].dia_pos_0[1])
+                                    Bus_end = (Bus_end_tmp[0],MFPList[j+i+1].dia_pos_0[1])
                                 elif i == 3:
-                                    Bus_end = (MFPList[j].dia_pos_0[0],Bus_end_tmp[1])
+                                    Bus_end = (MFPList[j+i+1].dia_pos_0[0],Bus_end_tmp[1])
 
                         BusWidth = BusWidth_temp[netclass]
                         bus = Bus(BusID,Bus_start,StartBusPins_temp[netclass],Bus_end,EndBusPins_temp[netclass],BusWidth)
