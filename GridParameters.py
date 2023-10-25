@@ -122,20 +122,23 @@ class GridParameters:
         for footprint in board.footprints:
             if len(footprint.graphicItems) == 3:
                 dia_points_list = footprint.graphicItems[2].coordinates
+            else: dia_points_list = None 
             if footprint.position.angle is None:
                 theta = 0
             else:
                 theta = footprint.position.angle * math.pi / 180
-            for i in range(len(dia_points_list)): #dia_points_list have 4 items
-                point = dia_points_list[i]
-                dx = point.X * math.cos(theta) + point.Y * math.sin(theta)
-                dy = point.Y * math.cos(theta) - point.X * math.sin(theta)
-                x = footprint.position.X + dx
-                y = footprint.position.Y + dy
-                if  (dx < 0) & (dy < 0):
-                    dia0 = (x,y)
-                if  (dx > 0) & (dy > 0):
-                    dia1 = (x,y)
+            
+            if dia_points_list is not None:
+                for i in range(len(dia_points_list)): #dia_points_list have 4 items
+                    point = dia_points_list[i]
+                    dx = point.X * math.cos(theta) + point.Y * math.sin(theta)
+                    dy = point.Y * math.cos(theta) - point.X * math.sin(theta)
+                    x = footprint.position.X + dx
+                    y = footprint.position.Y + dy
+                    if  (dx < 0) & (dy < 0):
+                        dia0 = (x,y)
+                    if  (dx > 0) & (dy > 0):
+                        dia1 = (x,y)
             
             pad_list = []
             for pad in footprint.pads:

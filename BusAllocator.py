@@ -27,23 +27,20 @@ class BusAllocator:
         distance = (dx**2+dy**2)**0.5
         return distance <= MaxDistance
     
-    def AllocZone(self, dia0, dia1, points):
-        zone = [[None]]*4
+    def AllocZone(self, dia0, dia1, point):
         centralpoint = ((dia0[0]+dia1[0])/2, (dia0[1]+dia1[1])/2)
-        for point in points:
-            tanx = abs((point[1]-centralpoint[1])/(point[0]-centralpoint[0]))
-            tan0 = (dia1[1]-dia0[1])/(dia1[0]-dia0[0])
-            if tanx>=tan0 :
-                if point[1]>centralpoint[1]:
-                    zone[0].append(point)
-                else:
-                    zone[2].append(point)
+        tanx = abs((point[1]-centralpoint[1])/(point[0]-centralpoint[0]))
+        tan0 = (dia1[1]-dia0[1])/(dia1[0]-dia0[0])
+        if tanx>=tan0 :
+            if point[1]>centralpoint[1]:
+                return 0
             else:
-                if point[0]>centralpoint[0]:
-                    zone[1].append(point)
-                else:
-                    zone[3].append(point)
-        return zone
+                return 2
+        else:
+            if point[0]>centralpoint[0]:
+                return 1
+            else:
+                return 3
     
 
     def GenerateMultipadFPList(self):
@@ -86,110 +83,122 @@ class BusAllocator:
 
         for i in range(len(MFPList)):
             PadNet1 = self.NetsInFP(MFPList[i])
+            sortPN1 = [[]]*4 
+            for padnet in PadNet1:
+                x = self.AllocZone(MFPList[i].dia_pos_0,MFPList[i].dia_pos_1, (padnet[0].position[0],padnet[0].position[1]))
+                sortPN1[x].append(padnet)
 
-            for j in range(len(MFPList)-1-i):
-                PadNet2 = self.NetsInFP(MFPList[i+j+1])
+        
 
-                classes = {}  #classes in the same Fp
-                StartBusPins_temp = {}
-                EndBusPins_temp = {}
-                StartID_temp = {}
-                EndID_temp = {}
-                BusWidth_temp = {}
-                for n in  range(len(PadNet2)):  #initialize the dict
-                    padnetclass = self.parameters.netid_to_net[PadNet2[n][1]].netClass
-                    if padnetclass not in classes.keys():
-                        classes[padnetclass] = []
-                        StartBusPins_temp[padnetclass] = []
-                        EndBusPins_temp[padnetclass] = []
-                        StartID_temp[padnetclass] = []
-                        EndID_temp[padnetclass] = []
-                        BusWidth_temp[padnetclass] = 0
+            for j in range(i+1,len(MFPList)):
+                PadNet2 = self.NetsInFP(MFPList[j])
+                sortPN2 = [[]]*4 
+                for padnet in PadNet2:
+                    x = self.AllocZone(MFPList[j].dia_pos_0,MFPList[j].dia_pos_1, (padnet[0].position[0],padnet[0].position[1]))
+                    sortPN2[x].append(padnet)
+                for a in range(len(sortPN1)):
+                    for b in range(len(sortPN2)):
 
-                with open('debug.txt', 'a') as file:
-                    file.write('({},{},{},{})'.format(MFPList[i].fpname, MFPList[i].position, MFPList[i+j+1].fpname, MFPList[i+j+1].position))
-
-                for m in range(len(PadNet1)):
-                    net1 = PadNet1[m][1]
-                    netclass1 = self.parameters.netid_to_class[net1]
-                    for n in  range(len(PadNet2)):
-                        net2 = PadNet2[n][1]
+                        classes = {}  #classes in the same Fp
+                        StartBusPins_temp = {}
+                        EndBusPins_temp = {}
+                        StartID_temp = {}
+                        EndID_temp = {}
+                        BusWidth_temp = {}
+                        for num in  range(len(sortPN1[a])):  #initialize the dict
+                            padnetclass = self.parameters.netid_to_net[sortPN1[a][num][1]].netClass
+                            if padnetclass not in classes.keys():
+                                classes[padnetclass] = []
+                                StartBusPins_temp[padnetclass] = []
+                                EndBusPins_temp[padnetclass] = []
+                                StartID_temp[padnetclass] = []
+                                EndID_temp[padnetclass] = []
+                                BusWidth_temp[padnetclass] = 0
+        
+                        with open('debug.txt', 'a') as file:
+                            file.write('({},{},{},{})'.format(MFPList[i].fpname, MFPList[i].position, MFPList[j].fpname, MFPList[j].position))
+        
+                        for m in range(len(sortPN1[a])):
+                            net1 = sortPN1[a][m][1]
+                            netclass1 = self.parameters.netid_to_class[net1]
+                            for n in  range(len(sortPN2[b])):
+                                net2 = sortPN2[b][n][1]
+                                with open('debug.txt' ,'a') as file:
+                                    file.write('({},{})'.format(self.parameters.id_to_name[net1],self.parameters.id_to_name[net2]))
+                                if (net1 == net2) & (net1 not in StartID_temp) & (net2 not in EndID_temp) :
+                                    if len(self.parameters.netid_to_net[net1].padList) != 2 :
+                                        continue
+                                    else:
+                                        classes[self.parameters.netid_to_net[net1].netClass].append(net1)
+                                        clearance_with_track = netclass1.clearance + netclass1.track_width
+                                        StartID_temp[self.parameters.netid_to_net[net1].netClass].append(net1)
+                                        EndID_temp[self.parameters.netid_to_net[net1].netClass].append(net2)
+                                        StartBusPins_temp[self.parameters.netid_to_net[net1].netClass].append(sortPN1[a][m][0])
+                                        EndBusPins_temp[self.parameters.netid_to_net[net1].netClass].append(sortPN2[b][n][0])
+                                        BusWidth_temp[self.parameters.netid_to_net[net1].netClass] += clearance_with_track
+        
+                                        break
                         with open('debug.txt' ,'a') as file:
-                            file.write('({},{})'.format(self.parameters.id_to_name[net1],self.parameters.id_to_name[net2]))
-                        if (net1 == net2) & (net1 not in StartID_temp) & (net2 not in EndID_temp) :
-                            if len(self.parameters.netid_to_net[net1].padList) != 2 :
-                                continue
-                            else:
-                                classes[self.parameters.netid_to_net[net1].netClass].append(net1)
-                                clearance_with_track = netclass1.clearance + netclass1.track_width
-                                StartID_temp[self.parameters.netid_to_net[net1].netClass].append(net1)
-                                EndID_temp[self.parameters.netid_to_net[net1].netClass].append(net2)
-                                StartBusPins_temp[self.parameters.netid_to_net[net1].netClass].append(PadNet1[m][0])
-                                EndBusPins_temp[self.parameters.netid_to_net[net1].netClass].append(PadNet2[n][0])
-                                BusWidth_temp[self.parameters.netid_to_net[net1].netClass] += clearance_with_track
-
-                                break
-                with open('debug.txt' ,'a') as file:
-                            file.write('\n')
-                for netclass in classes:
-                    if len(classes[netclass]) >= 2:   #pad number in the same class is over 2
-                        with open('debug.txt' ,'a') as file:
-                            file.write('the same net:')
-                        for pin in StartBusPins_temp[netclass]:
-                            with open('debug.txt' ,'a') as file:
-                                file.write('{} '.format(self.parameters.id_to_name[pin.netID]))
-                            with open('debug.txt' ,'a') as file:
-                                file.write('\n')
-                        start_sum_x = 0
-                        start_sum_y = 0
-                        end_sum_x = 0
-                        end_sum_y = 0
-#                        startpoints = []
-                        for pin in StartBusPins_temp[netclass]:
-                            start_sum_x += pin.position[0]
-                            start_sum_y += pin.position[1]
-                            #startpoints.append((pin.position[0],pin.position[1]))
-
-                        Bus_start_x = start_sum_x/len(StartBusPins_temp[netclass])
-                        Bus_start_y = start_sum_y/len(StartBusPins_temp[netclass])
-
-                        for pin in EndBusPins_temp[netclass]:
-
-                            end_sum_x += pin.position[0]
-                            end_sum_y += pin.position[1]
-                        
-                        Bus_end_x = end_sum_x/len(EndBusPins_temp[netclass])
-                        Bus_end_y = end_sum_y/len(EndBusPins_temp[netclass]) 
-                        Bus_start_tmp = (Bus_start_x,Bus_start_y)
-                        Bus_end_tmp = (Bus_end_x, Bus_end_y)
-                        allocated_sp = self.AllocZone(MFPList[i].dia_pos_0,MFPList[i].dia_pos_1, [Bus_start_tmp])
-                        allocated_ep = self.AllocZone(MFPList[j+i+1].dia_pos_0,MFPList[j+i+1].dia_pos_1, [Bus_end_tmp])
-                        for i in range(4):
-                            if allocated_sp[i] is not None:
-                                if i == 0:
-                                    Bus_start = (Bus_start_tmp[0],MFPList[i].dia_pos_1[1])
-                                elif i == 1:
-                                    Bus_start = (MFPList[i].dia_pos_1[0],Bus_start_tmp[1])
-                                elif i == 2:
-                                    Bus_start = (Bus_start_tmp[0],MFPList[i].dia_pos_0[1])
-                                elif i == 3:
-                                    Bus_start = (MFPList[i].dia_pos_0[0],Bus_start_tmp[1])
-                        
-                        for i in range(4):
-                            if allocated_ep[i] is not None:
-                                if i == 0:
-                                    Bus_end = (Bus_end_tmp[0],MFPList[j+i+1].dia_pos_1[1])
-                                elif i == 1:
-                                    Bus_end = (MFPList[j+i+1].dia_pos_1[0],Bus_end_tmp[1])
-                                elif i == 2:
-                                    Bus_end = (Bus_end_tmp[0],MFPList[j+i+1].dia_pos_0[1])
-                                elif i == 3:
-                                    Bus_end = (MFPList[j+i+1].dia_pos_0[0],Bus_end_tmp[1])
-
-                        BusWidth = BusWidth_temp[netclass]
-                        bus = Bus(BusID,Bus_start,StartBusPins_temp[netclass],Bus_end,EndBusPins_temp[netclass],BusWidth)
-                        self.BusList.append(bus)
-                        BusID +=1
+                                    file.write('\n')
+                        for netclass in classes:
+                            if len(classes[netclass]) >= 2:   #pad number in the same class is over 2
+                                with open('debug.txt' ,'a') as file:
+                                    file.write('the same net:')
+                                for pin in StartBusPins_temp[netclass]:
+                                    with open('debug.txt' ,'a') as file:
+                                        file.write('{} '.format(self.parameters.id_to_name[pin.netID]))
+                                    with open('debug.txt' ,'a') as file:
+                                        file.write('\n')
+                                start_sum_x = 0
+                                start_sum_y = 0
+                                end_sum_x = 0
+                                end_sum_y = 0
+#                                startpoints = []
+                                for pin in StartBusPins_temp[netclass]:
+                                    start_sum_x += pin.position[0]
+                                    start_sum_y += pin.position[1]
+                                    #startpoints.append((pin.position[0],pin.position[1]))
+        
+                                Bus_start_x = start_sum_x/len(StartBusPins_temp[netclass])
+                                Bus_start_y = start_sum_y/len(StartBusPins_temp[netclass])
+        
+                                for pin in EndBusPins_temp[netclass]:
+        
+                                    end_sum_x += pin.position[0]
+                                    end_sum_y += pin.position[1]
+                                
+                                Bus_end_x = end_sum_x/len(EndBusPins_temp[netclass])
+                                Bus_end_y = end_sum_y/len(EndBusPins_temp[netclass]) 
+                                Bus_start = (Bus_start_x,Bus_start_y)
+                                Bus_end = (Bus_end_x, Bus_end_y)
+#                                allocated_sp = self.AllocZone(MFPList[i].dia_pos_0,MFPList[i].dia_pos_1, [Bus_start_tmp])
+#                                allocated_ep = self.AllocZone(MFPList[j].dia_pos_0,MFPList[j].dia_pos_1, [Bus_end_tmp])
+#                                for i in range(4):
+#                                    if allocated_sp[i] is not None:
+#                                        if i == 0:
+#                                            Bus_start = (Bus_start_tmp[0],2.54*MFPList[i].dia_pos_1[1])
+#                                        elif i == 1:
+#                                            Bus_start = (2.54*MFPList[i].dia_pos_1[0],Bus_start_tmp[1])
+#                                        elif i == 2:
+#                                            Bus_start = (Bus_start_tmp[0],2.54*MFPList[i].dia_pos_0[1])
+#                                        elif i == 3:
+#                                            Bus_start = (2.54*MFPList[i].dia_pos_0[0],Bus_start_tmp[1])
+#                                
+#                                for i in range(4):
+#                                    if allocated_ep[i] is not None:
+#                                        if i == 0:
+#                                            Bus_end = (Bus_end_tmp[0],2.54*MFPList[j].dia_pos_1[1])
+#                                        elif i == 1:
+#                                            Bus_end = (2.54*MFPList[j].dia_pos_1[0],Bus_end_tmp[1])
+#                                        elif i == 2:
+#                                            Bus_end = (Bus_end_tmp[0],2.54*MFPList[j].dia_pos_0[1])
+#                                        elif i == 3:
+#                                            Bus_end = (2.54*MFPList[j].dia_pos_0[0],Bus_end_tmp[1])
+        
+                                BusWidth = BusWidth_temp[netclass]
+                                bus = Bus(BusID,Bus_start,StartBusPins_temp[netclass],Bus_end,EndBusPins_temp[netclass],BusWidth)
+                                self.BusList.append(bus)
+                                BusID +=1
 
 def allocator_arguments():
     parser = argparse.ArgumentParser('BusAllocator')
@@ -224,6 +233,11 @@ class Drawer():
             busx = [bus.Bus_start[0],bus.Bus_end[0]]
             busy = [bus.Bus_start[1],bus.Bus_end[1]]
             plt.plot(busx,busy, linewidth = bus.BusWidth, alpha = 0.5)
+            for d in range(len(bus.StartPads)):
+                pads_x = [bus.StartPads[d].position[0],bus.EndPads[d].position[0]]
+                pads_y = [bus.StartPads[d].position[1],bus.EndPads[d].position[1]]
+                plt.plot(pads_x,pads_y,'k:',linewidth = 0.5, alpha= 0.5)
+            
 #        plt.xlim((self.gridparameters.dia_pos_0[0],self.gridparameters.dia_pos_1[0]))
 #        plt.ylim((self.gridparameters.dia_pos_1[1],self.gridparameters.dia_pos_0[1]))
 
