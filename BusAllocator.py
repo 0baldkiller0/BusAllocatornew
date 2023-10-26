@@ -29,6 +29,14 @@ class BusAllocator:
     
     def AllocZone(self, dia0, dia1, point):
         centralpoint = ((dia0[0]+dia1[0])/2, (dia0[1]+dia1[1])/2)
+        sizex = dia1[0] - dia0[0]
+        sizey = dia1[1] - dia0[1]
+        if (sizex > 3*sizey) | (sizey > 3*sizex):
+            return 0
+        if point[0]-centralpoint[0] == 0:
+            if (point[1]-centralpoint[1])>0:
+                return 0 
+            else: return 2
         tanx = abs((point[1]-centralpoint[1])/(point[0]-centralpoint[0]))
         tan0 = (dia1[1]-dia0[1])/(dia1[0]-dia0[0])
         if tanx>=tan0 :
@@ -96,7 +104,7 @@ class BusAllocator:
                 for padnet in PadNet2:
                     x = self.AllocZone(MFPList[j].dia_pos_0,MFPList[j].dia_pos_1, (padnet[0].position[0],padnet[0].position[1]))
                     sortPN2[x].append(padnet)
-                for a in range(len(sortPN1)):
+                for a in range(len(sortPN1)): #search 4 boundaries
                     for b in range(len(sortPN2)):
 
                         classes = {}  #classes in the same Fp
@@ -202,15 +210,41 @@ class BusAllocator:
 
 def allocator_arguments():
     parser = argparse.ArgumentParser('BusAllocator')
-    parser.add_argument('--kicad_pcb', type=str, dest='kicad_pcb', default="bench1/bm1.unrouted.kicad_pcb")
-    parser.add_argument('--kicad_pro', type=str, dest='kicad_pro', default="bench1/bm1.unrouted.kicad_pro")
-    parser.add_argument('--save_file', type=str, dest='save_file', default="bench1/bm1.routed.kicad_pcb")
+    parser.add_argument('--kicad_pcb', type=str, dest='kicad_pcb', default="bench4/bm4.unrouted.kicad_pcb")
+    parser.add_argument('--kicad_pro', type=str, dest='kicad_pro', default="bench4/bm4.unrouted.kicad_pro")
+    parser.add_argument('--save_file', type=str, dest='save_file', default="bench4/bm4.routed.kicad_pcb")
     return parser.parse_args()
 
 class Drawer():
     def __init__(self, buslist, gridparameters:GridParameters):
         self.buslist = buslist
         self.gridparameters = gridparameters
+        self.footprint = gridparameters.footprint_list
+    
+    def AllocZone(self, dia0, dia1, point):
+        centralpoint = ((dia0[0]+dia1[0])/2, (dia0[1]+dia1[1])/2)
+        sizex = dia1[0] - dia0[0]
+        sizey = dia1[1] - dia0[1]
+        if (sizex > 3*sizey) | (sizey > 3*sizex):
+            return 0
+
+        if point[0]-centralpoint[0] == 0:
+            if (point[1]-centralpoint[1])>0:
+                return 0 
+            else: return 2
+        tanx = abs((point[1]-centralpoint[1])/(point[0]-centralpoint[0]))
+        tan0 = abs((dia1[1]-dia0[1])/(dia1[0]-dia0[0]))
+        if tanx>=tan0 :
+            if point[1]>centralpoint[1]:
+                return 0
+            else:
+                return 2
+        else:
+            if point[0]>centralpoint[0]:
+                return 1
+            else:
+                return 3
+        
     
     def draw(self):
         sizex = abs(self.gridparameters.dia_pos_1[0] - self.gridparameters.dia_pos_0[0])
@@ -219,15 +253,25 @@ class Drawer():
 #        sizex = 700
 #        sizey = 300
         print(sizex,sizey)
-        fig,ax = plt.subplots(figsize = (sizex/100,sizey/100))
+        fig,ax = plt.subplots(figsize = (sizex/10,sizey/10))
         padx = []
         pady = []
+        color = []
         for fp in self.gridparameters.footprint_list:
             for pad in fp.pads:
                 padx.append(pad.position[0])
                 pady.append(pad.position[1])
+                edge = self.AllocZone(fp.dia_pos_0,fp.dia_pos_1, (pad.position[0],pad.position[1]))
+                if  edge == 0:
+                    color.append('g')
+                elif edge == 1:
+                    color.append('r')
+                elif edge == 2:
+                    color.append('c')
+                elif edge == 3:
+                    color.append('m')
 
-        plt.scatter(padx,pady,marker='.',linewidths= 0.1)
+        plt.scatter(padx,pady,c=color,marker='.',linewidths= 0.1)
 
         for bus in self.buslist:
             busx = [bus.Bus_start[0],bus.Bus_end[0]]
@@ -237,13 +281,19 @@ class Drawer():
                 pads_x = [bus.StartPads[d].position[0],bus.EndPads[d].position[0]]
                 pads_y = [bus.StartPads[d].position[1],bus.EndPads[d].position[1]]
                 plt.plot(pads_x,pads_y,'k:',linewidth = 0.5, alpha= 0.5)
+        for fp in self.footprint:
+            plt.plot([fp.dia_pos_0[0],fp.dia_pos_1[0]],[fp.dia_pos_0[1],fp.dia_pos_0[1]],'k',linewidth = 0.5, alpha= 1)
+            plt.plot([fp.dia_pos_0[0],fp.dia_pos_0[0]],[fp.dia_pos_0[1],fp.dia_pos_1[1]],'k',linewidth = 0.5, alpha= 1)
+            plt.plot([fp.dia_pos_0[0],fp.dia_pos_1[0]],[fp.dia_pos_1[1],fp.dia_pos_1[1]],'k',linewidth = 0.5, alpha= 1)
+            plt.plot([fp.dia_pos_1[0],fp.dia_pos_1[0]],[fp.dia_pos_0[1],fp.dia_pos_1[1]],'k',linewidth = 0.5, alpha= 1)
+
             
 #        plt.xlim((self.gridparameters.dia_pos_0[0],self.gridparameters.dia_pos_1[0]))
 #        plt.ylim((self.gridparameters.dia_pos_1[1],self.gridparameters.dia_pos_0[1]))
 
 
 
-        plt.savefig('figs/new/bench1.png')
+        plt.savefig('figs/new/bench4.png')
         plt.show()
 
 
@@ -259,7 +309,7 @@ if __name__ == '__main__':
     busallocator.allocate()
     for Bus in busallocator.BusList:
         print(Bus.BusID,Bus.Bus_start,Bus.Bus_end,Bus.BusWidth)
-    drawer = Drawer(busallocator.BusList, gridParameters)
+    drawer = Drawer(busallocator.BusList, gridParameters,)
     drawer.draw()
 
 

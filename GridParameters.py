@@ -31,8 +31,9 @@ class Footprint:
         self.pads = pads
         self.position = position
         self.fpname = name
-        self.dia_pos_0 = dia0
-        self.dia_pos_1 = dia1
+        self.dia_pos_0 = [to_grid_coord_round_down(dia0[0]),to_grid_coord_round_down(dia0[1])]
+        self.dia_pos_1 = [to_grid_coord_round_down(dia1[0]),to_grid_coord_round_down(dia1[1])]
+        self.size = (self.dia_pos_1[0] - self.dia_pos_0[0],self.dia_pos_1[1] - self.dia_pos_0[1])
 
 
 
@@ -136,9 +137,9 @@ class GridParameters:
                     x = footprint.position.X + dx
                     y = footprint.position.Y + dy
                     if  (dx < 0) & (dy < 0):
-                        dia0 = (x,y)
+                        dia0 = (x-self.dia_pos_0[0],y-self.dia_pos_0[1])
                     if  (dx > 0) & (dy > 0):
-                        dia1 = (x,y)
+                        dia1 = (x - self.dia_pos_0[0],y - self.dia_pos_0[1])
             
             pad_list = []
             for pad in footprint.pads:
