@@ -121,26 +121,98 @@ class GridParameters:
         self.footprint_list = []
         self.fp = board.footprints
         for footprint in board.footprints:
-            if len(footprint.graphicItems) == 3:
-                dia_points_list = footprint.graphicItems[2].coordinates
-            else: dia_points_list = None 
+#            boundary_list = footprint.graphicItems
+#            self.dia_pos_0 = [boundary_list[0].start.X, boundary_list[0].start.Y]
+#            self.dia_pos_1 = [boundary_list[0].start.X, boundary_list[0].start.Y]
+#            pos_set = set([])
+#            for gr_line in boundary_list:
+#                start_pos = [gr_line.start.X, gr_line.start.Y]
+#                end_pos = [gr_line.end.X, gr_line.end.Y]
+#                if str(start_pos) not in pos_set:
+#                    pos_set.add(str(start_pos))
+#                    if self.dia_pos_0[0] > start_pos[0]:
+#                        self.dia_pos_0[0] = start_pos[0]
+#                    if self.dia_pos_0[1] > start_pos[1]:
+#                        self.dia_pos_0[1] = start_pos[1]
+#                    if self.dia_pos_1[0] < start_pos[0]:
+#                        self.dia_pos_1[0] = start_pos[0]
+#                    if self.dia_pos_1[1] < start_pos[1]:
+#                        self.dia_pos_1[1] = start_pos[1]
+#    
+#                if str(end_pos) not in pos_set:
+#                    pos_set.add(str(end_pos))
+#                    if self.dia_pos_0[0] > end_pos[0]:
+#                        self.dia_pos_0[0] = end_pos[0]
+#                    if self.dia_pos_0[1] > end_pos[1]:
+#                        self.dia_pos_0[1] = end_pos[1]
+#                    if self.dia_pos_1[0] < end_pos[0]:
+#                        self.dia_pos_1[0] = end_pos[0]
+#                    if self.dia_pos_1[1] < end_pos[1]:
+#                        self.dia_pos_1[1] = end_pos[1]
+            if len(footprint.graphicItems) >= 3:
+                dia_points_list = footprint.graphicItems[2]
+            else: 
+                dia_points_list = None 
+                dia0 = dia1 = (footprint.position.X,footprint.position.Y)
+
             if footprint.position.angle is None:
                 theta = 0
             else:
                 theta = footprint.position.angle * math.pi / 180
             
-            if dia_points_list is not None:
-                for i in range(len(dia_points_list)): #dia_points_list have 4 items
-                    point = dia_points_list[i]
+            if type(dia_points_list).__name__ =="FpPoly" :
+                for i in range(len(dia_points_list.coordinates)): #dia_points_list have 4 items
+                    point = dia_points_list.coordinates[i]
                     dx = point.X * math.cos(theta) + point.Y * math.sin(theta)
                     dy = point.Y * math.cos(theta) - point.X * math.sin(theta)
                     x = footprint.position.X + dx
                     y = footprint.position.Y + dy
                     if  (dx < 0) & (dy < 0):
-                        dia0 = (x-self.dia_pos_0[0],y-self.dia_pos_0[1])
+                        dia0 = (x - self.dia_pos_0[0], y - self.dia_pos_0[1])
                     if  (dx > 0) & (dy > 0):
-                        dia1 = (x - self.dia_pos_0[0],y - self.dia_pos_0[1])
-            
+                        dia1 = (x - self.dia_pos_0[0], y - self.dia_pos_0[1])
+            elif type(dia_points_list).__name__ =="FpCircle" :
+                r = dia_points_list.end.X - dia_points_list.center.X  #end is right to center
+                x = footprint.position.X
+                y = footprint.position.Y
+                dia0 = (x - self.dia_pos_0[0] - r, y - self.dia_pos_0[1] - r)
+                dia1 = (x - self.dia_pos_0[0] + r, y - self.dia_pos_0[1] + r)
+
+            elif type(dia_points_list).__name__ =="FpLine":
+                dia0 = [dia_points_list.start.X, dia_points_list.start.Y]
+                dia1 = [dia_points_list.start.X, dia_points_list.start.Y]
+                for i in range(2,len(footprint.graphicItems)):
+                    gr_line = footprint.graphicItems[i]
+                    if type(gr_line).__name__ =="FpLine":
+                        start_pos = [gr_line.start.X, gr_line.start.Y]
+                        end_pos = [gr_line.end.X, gr_line.end.Y]
+                        if str(start_pos) not in pos_set:
+                            pos_set.add(str(start_pos))
+                            if dia0[0] > start_pos[0]:
+                                dia0[0] = start_pos[0]
+                            if dia0[1] > start_pos[1]:
+                                dia0[1] = start_pos[1]
+                            if dia1[0] < start_pos[0]:
+                                dia1[0] = start_pos[0]
+                            if dia1[1] < start_pos[1]:
+                                dia1[1] = start_pos[1]
+
+                        if str(end_pos) not in pos_set:
+                            pos_set.add(str(end_pos))
+                            if dia0[0] > end_pos[0]:
+                                dia0[0] = end_pos[0]
+                            if dia0[1] > end_pos[1]:
+                                dia0[1] = end_pos[1]
+                            if dia1[0] < end_pos[0]:
+                                dia1[0] = end_pos[0]
+                            if dia1[1] < end_pos[1]:
+                                dia1[1] = end_pos[1]
+                        x = footprint.position.X
+                        y = footprint.position.Y
+                        dia0 = [x + dia0[0] - self.dia_pos_0[0], y + dia0[1] - self.dia_pos_0[1]]
+                        dia1 = [x + dia1[0] - self.dia_pos_1[0], y + dia1[1] - self.dia_pos_1[1]]
+
+                
             pad_list = []
             for pad in footprint.pads:
                 if footprint.position.angle is None:

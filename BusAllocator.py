@@ -31,7 +31,7 @@ class BusAllocator:
         centralpoint = ((dia0[0]+dia1[0])/2, (dia0[1]+dia1[1])/2)
         sizex = dia1[0] - dia0[0]
         sizey = dia1[1] - dia0[1]
-        if (sizex > 3*sizey) | (sizey > 3*sizex):
+        if (sizex > 2.5*sizey) | (sizey > 2.5*sizex):
             return 0
         if point[0]-centralpoint[0] == 0:
             if (point[1]-centralpoint[1])>0:
@@ -91,23 +91,48 @@ class BusAllocator:
 
         for i in range(len(MFPList)):
             PadNet1 = self.NetsInFP(MFPList[i])
-            sortPN1 = [[]]*4 
+            sortPN1 = []
+            zone0 = []
+            zone1 = []
+            zone2 = []
+            zone3 = []
             for padnet in PadNet1:
                 x = self.AllocZone(MFPList[i].dia_pos_0,MFPList[i].dia_pos_1, (padnet[0].position[0],padnet[0].position[1]))
-                sortPN1[x].append(padnet)
+                if x == 0:
+                    zone0.append(padnet)
+                if x == 1:
+                    zone1.append(padnet)
+                if x == 2:
+                    zone2.append(padnet) 
+                if x == 3:
+                    zone3.append(padnet)
+            sortPN1 = [zone0, zone1, zone2, zone3]
 
         
 
             for j in range(i+1,len(MFPList)):
                 PadNet2 = self.NetsInFP(MFPList[j])
-                sortPN2 = [[]]*4 
+                sortPN2 = []
+                zone0 = []
+                zone1 = []
+                zone2 = []
+                zone3 = []
                 for padnet in PadNet2:
                     x = self.AllocZone(MFPList[j].dia_pos_0,MFPList[j].dia_pos_1, (padnet[0].position[0],padnet[0].position[1]))
-                    sortPN2[x].append(padnet)
+                    if x == 0:
+                        zone0.append(padnet)
+                    if x == 1:
+                        zone1.append(padnet)
+                    if x == 2:
+                        zone2.append(padnet) 
+                    if x == 3:
+                        zone3.append(padnet)
+                sortPN2 = [zone0, zone1, zone2, zone3]
+                with open('debug.txt', 'a') as file:
+                    file.write('({},{},{},{})'.format(MFPList[i].fpname, MFPList[i].position, MFPList[j].fpname, MFPList[j].position))
                 for a in range(len(sortPN1)): #search 4 boundaries
                     for b in range(len(sortPN2)):
-
-                        classes = {}  #classes in the same Fp
+                        classes = {}  #classes in the same Fpedge
                         StartBusPins_temp = {}
                         EndBusPins_temp = {}
                         StartID_temp = {}
@@ -123,8 +148,6 @@ class BusAllocator:
                                 EndID_temp[padnetclass] = []
                                 BusWidth_temp[padnetclass] = 0
         
-                        with open('debug.txt', 'a') as file:
-                            file.write('({},{},{},{})'.format(MFPList[i].fpname, MFPList[i].position, MFPList[j].fpname, MFPList[j].position))
         
                         for m in range(len(sortPN1[a])):
                             net1 = sortPN1[a][m][1]
@@ -225,10 +248,14 @@ class Drawer():
         centralpoint = ((dia0[0]+dia1[0])/2, (dia0[1]+dia1[1])/2)
         sizex = dia1[0] - dia0[0]
         sizey = dia1[1] - dia0[1]
-        if (sizex > 3*sizey) | (sizey > 3*sizex):
+        if (sizex > 2.5*sizey) | (sizey > 2.5*sizex):
             return 0
 
         if point[0]-centralpoint[0] == 0:
+            if (point[1]-centralpoint[1])>0:
+                return 0 
+            else: return 2
+        if (dia1[0]-dia0[0]) == 0:
             if (point[1]-centralpoint[1])>0:
                 return 0 
             else: return 2
@@ -254,6 +281,8 @@ class Drawer():
 #        sizey = 300
         print(sizex,sizey)
         fig,ax = plt.subplots(figsize = (sizex/10,sizey/10))
+        plt.xlim(0,12*sizex)
+        plt.ylim(0,12*sizey)
         padx = []
         pady = []
         color = []
@@ -309,7 +338,7 @@ if __name__ == '__main__':
     busallocator.allocate()
     for Bus in busallocator.BusList:
         print(Bus.BusID,Bus.Bus_start,Bus.Bus_end,Bus.BusWidth)
-    drawer = Drawer(busallocator.BusList, gridParameters,)
+    drawer = Drawer(busallocator.BusList, gridParameters)
     drawer.draw()
 
 

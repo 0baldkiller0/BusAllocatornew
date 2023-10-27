@@ -1,5 +1,6 @@
-for i in range(4):
-    print(i)
+sortPN1 = [[]]*4 
 
-for j in range(0,2,4):
-    print(j)
+sortPN1[[1]].append(1)
+sortPN1[[0]].append(0)
+
+print(sortPN1)
