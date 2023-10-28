@@ -27,6 +27,19 @@ class BusAllocator:
         distance = (dx**2+dy**2)**0.5
         return distance <= MaxDistance
     
+
+    def search_nearest(self,point,pads):
+        tmp = float('inf')
+        for pad in pads:
+            dx = pad.position[0] - point[0]
+            dy = pad.position[1] - point[1]
+            distance = (dx**2+dy**2)**0.5
+            if distance <= tmp:
+                targrtpoint = (pad.position[0],pad.position[1])
+                tmp = distance
+        return targrtpoint 
+
+    
     def AllocZone(self, dia0, dia1, point):
         centralpoint = ((dia0[0]+dia1[0])/2, (dia0[1]+dia1[1])/2)
         sizex = dia1[0] - dia0[0]
@@ -227,15 +240,17 @@ class BusAllocator:
 #                                            Bus_end = (2.54*MFPList[j].dia_pos_0[0],Bus_end_tmp[1])
         
                                 BusWidth = BusWidth_temp[netclass]
+                                Bus_start = self.search_nearest(Bus_start,StartBusPins_temp[netclass])
+                                Bus_end = self.search_nearest(Bus_end,EndBusPins_temp[netclass])
                                 bus = Bus(BusID,Bus_start,StartBusPins_temp[netclass],Bus_end,EndBusPins_temp[netclass],BusWidth)
                                 self.BusList.append(bus)
                                 BusID +=1
 
 def allocator_arguments():
     parser = argparse.ArgumentParser('BusAllocator')
-    parser.add_argument('--kicad_pcb', type=str, dest='kicad_pcb', default="bench4/bm4.unrouted.kicad_pcb")
-    parser.add_argument('--kicad_pro', type=str, dest='kicad_pro', default="bench4/bm4.unrouted.kicad_pro")
-    parser.add_argument('--save_file', type=str, dest='save_file', default="bench4/bm4.routed.kicad_pcb")
+    parser.add_argument('--kicad_pcb', type=str, dest='kicad_pcb', default="bench1/bm1.unrouted.kicad_pcb")
+    parser.add_argument('--kicad_pro', type=str, dest='kicad_pro', default="bench1/bm1.unrouted.kicad_pro")
+    parser.add_argument('--save_file', type=str, dest='save_file', default="bench1/bm1.routed.kicad_pcb")
     return parser.parse_args()
 
 class Drawer():
@@ -322,7 +337,7 @@ class Drawer():
 
 
 
-        plt.savefig('figs/new/bench4.png')
+        plt.savefig('figs/new/bench1.png')
         plt.show()
 
 
