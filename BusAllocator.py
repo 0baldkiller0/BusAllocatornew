@@ -51,6 +51,8 @@ class BusAllocator:
                 return 0 
             else: return 2
         tanx = abs((point[1]-centralpoint[1])/(point[0]-centralpoint[0]))
+        if dia1[0] == dia0[0]:
+            return 0
         tan0 = (dia1[1]-dia0[1])/(dia1[0]-dia0[0])
         if tanx>=tan0 :
             if point[1]>centralpoint[1]:
@@ -213,6 +215,23 @@ class BusAllocator:
                                 
                                 Bus_end_x = end_sum_x/len(EndBusPins_temp[netclass])
                                 Bus_end_y = end_sum_y/len(EndBusPins_temp[netclass]) 
+                                if a == 0:
+                                    Bus_start_y = MFPList[i].dia_pos_1[1]
+                                elif a== 1:
+                                    Bus_start_x = MFPList[i].dia_pos_1[0]
+                                elif a== 2:
+                                    Bus_start_y = MFPList[i].dia_pos_0[1]
+                                elif a== 3:
+                                    Bus_start_x = MFPList[i].dia_pos_0[0]
+
+                                if b == 0:
+                                    Bus_end_y = MFPList[j].dia_pos_1[1]
+                                elif b == 1:
+                                    Bus_end_x = MFPList[j].dia_pos_1[0]
+                                elif b == 2:
+                                    Bus_end_y = MFPList[j].dia_pos_0[1]
+                                elif b == 3:
+                                    Bus_end_x = MFPList[j].dia_pos_0[0]                                                                
                                 Bus_start = (Bus_start_x,Bus_start_y)
                                 Bus_end = (Bus_end_x, Bus_end_y)
 #                                allocated_sp = self.AllocZone(MFPList[i].dia_pos_0,MFPList[i].dia_pos_1, [Bus_start_tmp])
@@ -240,8 +259,8 @@ class BusAllocator:
 #                                            Bus_end = (2.54*MFPList[j].dia_pos_0[0],Bus_end_tmp[1])
         
                                 BusWidth = BusWidth_temp[netclass]
-                                Bus_start = self.search_nearest(Bus_start,StartBusPins_temp[netclass])
-                                Bus_end = self.search_nearest(Bus_end,EndBusPins_temp[netclass])
+#                                Bus_start = self.search_nearest(Bus_start,StartBusPins_temp[netclass])
+#                                Bus_end = self.search_nearest(Bus_end,EndBusPins_temp[netclass])
                                 bus = Bus(BusID,Bus_start,StartBusPins_temp[netclass],Bus_end,EndBusPins_temp[netclass],BusWidth)
                                 self.BusList.append(bus)
                                 BusID +=1
@@ -296,8 +315,9 @@ class Drawer():
 #        sizey = 300
         print(sizex,sizey)
         fig,ax = plt.subplots(figsize = (sizex/10,sizey/10))
-        plt.xlim(0,12*sizex)
-        plt.ylim(0,12*sizey)
+        expand = 0
+        plt.xlim(0-expand,12*sizex+expand)
+        plt.ylim(0-expand,12*sizey+expand)
         padx = []
         pady = []
         color = []
@@ -337,7 +357,7 @@ class Drawer():
 
 
 
-        plt.savefig('figs/new/bench1.png')
+        plt.savefig('figs/new/bench2.png')
         plt.show()
 
 

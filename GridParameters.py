@@ -149,68 +149,106 @@ class GridParameters:
 #                        self.dia_pos_1[0] = end_pos[0]
 #                    if self.dia_pos_1[1] < end_pos[1]:
 #                        self.dia_pos_1[1] = end_pos[1]
-            if len(footprint.graphicItems) >= 3:
-                dia_points_list = footprint.graphicItems[2]
-            else: 
-                dia_points_list = None 
-                dia0 = dia1 = (footprint.position.X,footprint.position.Y)
-
             if footprint.position.angle is None:
                 theta = 0
             else:
                 theta = footprint.position.angle * math.pi / 180
+            tmp0 = [footprint.position.X - self.dia_pos_0[0],footprint.position.Y - self.dia_pos_0[1]]
+            tmp1 = [footprint.position.X - self.dia_pos_0[0],footprint.position.Y - self.dia_pos_0[1]]
+            for item in footprint.graphicItems:
+                if type(item).__name__ =="FpText":
+                    #dia0 = dia1 = (footprint.position.X ,footprint.position.Y)
+                    continue
             
-            if type(dia_points_list).__name__ =="FpPoly" :
-                for i in range(len(dia_points_list.coordinates)): #dia_points_list have 4 items
-                    point = dia_points_list.coordinates[i]
+                elif type(item).__name__ =="FpPoly" :
+                    for i in range(len(item.coordinates)): #item have 4 items
+                        point = item.coordinates[i]
+                        dx = point.X * math.cos(theta) + point.Y * math.sin(theta)
+                        dy = point.Y * math.cos(theta) - point.X * math.sin(theta)
+                        x = footprint.position.X + dx
+                        y = footprint.position.Y + dy
+                        if  (dx < 0) & (dy < 0):
+                            dia0 = (x - self.dia_pos_0[0], y - self.dia_pos_0[1])
+                        if  (dx > 0) & (dy > 0):
+                            dia1 = (x - self.dia_pos_0[0], y - self.dia_pos_0[1])
+                elif type(item).__name__ =="FpCircle" :
+                    point = item.center
+                    r = item.end.X - item.center.X  #end is right to center
                     dx = point.X * math.cos(theta) + point.Y * math.sin(theta)
                     dy = point.Y * math.cos(theta) - point.X * math.sin(theta)
                     x = footprint.position.X + dx
                     y = footprint.position.Y + dy
-                    if  (dx < 0) & (dy < 0):
-                        dia0 = (x - self.dia_pos_0[0], y - self.dia_pos_0[1])
-                    if  (dx > 0) & (dy > 0):
-                        dia1 = (x - self.dia_pos_0[0], y - self.dia_pos_0[1])
-            elif type(dia_points_list).__name__ =="FpCircle" :
-                r = dia_points_list.end.X - dia_points_list.center.X  #end is right to center
-                x = footprint.position.X
-                y = footprint.position.Y
-                dia0 = (x - self.dia_pos_0[0] - r, y - self.dia_pos_0[1] - r)
-                dia1 = (x - self.dia_pos_0[0] + r, y - self.dia_pos_0[1] + r)
+                    dia0 = (x - self.dia_pos_0[0] - r, y - self.dia_pos_0[1] - r)
+                    dia1 = (x - self.dia_pos_0[0] + r, y - self.dia_pos_0[1] + r)
 
-            elif type(dia_points_list).__name__ =="FpLine":
-                dia0 = [dia_points_list.start.X, dia_points_list.start.Y]
-                dia1 = [dia_points_list.start.X, dia_points_list.start.Y]
-                for i in range(2,len(footprint.graphicItems)):
-                    gr_line = footprint.graphicItems[i]
-                    if type(gr_line).__name__ =="FpLine":
-                        start_pos = [gr_line.start.X, gr_line.start.Y]
-                        end_pos = [gr_line.end.X, gr_line.end.Y]
-                        if str(start_pos) not in pos_set:
-                            pos_set.add(str(start_pos))
-                            if dia0[0] > start_pos[0]:
-                                dia0[0] = start_pos[0]
-                            if dia0[1] > start_pos[1]:
-                                dia0[1] = start_pos[1]
-                            if dia1[0] < start_pos[0]:
-                                dia1[0] = start_pos[0]
-                            if dia1[1] < start_pos[1]:
-                                dia1[1] = start_pos[1]
+                elif type(item).__name__ =="FpLine":
+                    point0 = item.start
+                    dx = point0.X * math.cos(theta) + point0.Y * math.sin(theta)
+                    dy = point0.Y * math.cos(theta) - point0.X * math.sin(theta)
+                    x0 = footprint.position.X + dx
+                    y0 = footprint.position.Y + dy
+                    point1 = item.end
+                    dx = point1.X * math.cos(theta) + point1.Y * math.sin(theta)
+                    dy = point1.Y * math.cos(theta) - point1.X * math.sin(theta)
+                    x1 = footprint.position.X + dx
+                    y1 = footprint.position.Y + dy
+                    if  x0 <= x1:
+                        dia00 = x0
+                        dia10 = x1
+                    else:
+                        dia10 = x0
+                        dia00 = x1
 
-                        if str(end_pos) not in pos_set:
-                            pos_set.add(str(end_pos))
-                            if dia0[0] > end_pos[0]:
-                                dia0[0] = end_pos[0]
-                            if dia0[1] > end_pos[1]:
-                                dia0[1] = end_pos[1]
-                            if dia1[0] < end_pos[0]:
-                                dia1[0] = end_pos[0]
-                            if dia1[1] < end_pos[1]:
-                                dia1[1] = end_pos[1]
-                        x = footprint.position.X
-                        y = footprint.position.Y
-                        dia0 = [x + dia0[0] - self.dia_pos_0[0], y + dia0[1] - self.dia_pos_0[1]]
-                        dia1 = [x + dia1[0] - self.dia_pos_1[0], y + dia1[1] - self.dia_pos_1[1]]
+                    if  y0 <= y1:
+                        dia01 = y0
+                        dia11 = y1
+                    else:
+                        dia11 = y0
+                        dia01 = y1
+
+                    dia0 = (dia00 - self.dia_pos_0[0], dia01 - self.dia_pos_0[1])
+                    dia1 = (dia10 - self.dia_pos_0[0], dia11 - self.dia_pos_0[1])
+                if dia0[0] <= tmp0[0]:
+                    tmp0[0] = dia0[0]
+                if dia0[1] <= tmp0[1]:
+                    tmp0[1] = dia0[1]
+                if dia1[0] >= tmp1[0]:
+                    tmp1[0] = dia1[0]
+                if dia1[1] >= tmp1[1]:
+                    tmp1[1] = dia1[1]
+            
+            dia0 = tmp0
+            dia1 = tmp1
+
+
+#                    for i in range(2,len(footprint.graphicItems)):
+#                        gr_line = footprint.graphicItems[i]
+#                        if type(gr_line).__name__ =="FpLine":
+#                            start_pos = [gr_line.start.X, gr_line.start.Y]
+#                            end_pos = [gr_line.end.X, gr_line.end.Y]
+#                            if str(start_pos) not in pos_set:
+#                                pos_set.add(str(start_pos))
+#                                if dia0[0] > start_pos[0]:
+#                                    dia0[0] = start_pos[0]
+#                                if dia0[1] > start_pos[1]:
+#                                    dia0[1] = start_pos[1]
+#                                if dia1[0] < start_pos[0]:
+#                                    dia1[0] = start_pos[0]
+#                                if dia1[1] < start_pos[1]:
+#                                    dia1[1] = start_pos[1]
+#
+#                            if str(end_pos) not in pos_set:
+#                                pos_set.add(str(end_pos))
+#                                if dia0[0] > end_pos[0]:
+#                                    dia0[0] = end_pos[0]
+#                                if dia0[1] > end_pos[1]:
+#                                    dia0[1] = end_pos[1]
+#                                if dia1[0] < end_pos[0]:
+#                                    dia1[0] = end_pos[0]
+#                                if dia1[1] < end_pos[1]:
+#                                    dia1[1] = end_pos[1]
+#                            dia0 = [x + dia0[0] - self.dia_pos_0[0], y + dia0[1] - self.dia_pos_0[1]]
+#                            dia1 = [x + dia1[0] - self.dia_pos_1[0], y + dia1[1] - self.dia_pos_1[1]]
 
                 
             pad_list = []
