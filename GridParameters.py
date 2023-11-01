@@ -17,7 +17,7 @@ class Pad:
 
         self.position = [to_grid_coord_round_down(pos[0]), to_grid_coord_round_down(pos[1]), pos[2]]
         self.size = [to_grid_coord_round_up(size[0]), to_grid_coord_round_up(size[1])]
-
+        
 
 class Net:
     def __init__(self, net_id, net_name, net_class):
@@ -257,6 +257,7 @@ class GridParameters:
                     theta = 0
                 else:
                     theta = footprint.position.angle * math.pi / 180
+
                 dx = pad.position.X * math.cos(theta) + pad.position.Y * math.sin(theta)
                 dy = pad.position.Y * math.cos(theta) - pad.position.X * math.sin(theta)
                 x = footprint.position.X + dx
@@ -264,6 +265,12 @@ class GridParameters:
                 pad_pos = [x - self.dia_pos_0[0], 
                            y - self.dia_pos_0[1],
                            layers[footprint.layer]]
+                if (footprint.position.angle == None) | (footprint.position.angle == 180):
+                    ptdia0 = [pad_pos[0] - pad.size.X/2, pad_pos[1] - pad.size.Y/2]
+                    ptdia1 = [pad_pos[0] + pad.size.X/2, pad_pos[1] + pad.size.Y/2]
+                else:
+                    ptdia0 = [pad_pos[0] - pad.size.Y/2, pad_pos[1] - pad.size.X/2]
+                    ptdia1 = [pad_pos[0] + pad.size.Y/2, pad_pos[1] + pad.size.X/2]
                 if pad.position.angle is None:
                     alpha = 0
                 else:
@@ -279,6 +286,17 @@ class GridParameters:
                     board_pad = Pad(pad_pos, footprint.layer, pad_shape, pad_size, pad.type, None)
                     self.pad_obstacles.append(board_pad)
                 pad_list.append(board_pad)
+                if ptdia0[0] <= tmp0[0]:
+                    tmp0[0] = ptdia0[0]
+                if ptdia0[1] <= tmp0[1]:
+                    tmp0[1] = ptdia0[1]
+                if ptdia1[0] >= tmp1[0]:
+                    tmp1[0] = ptdia1[0]
+                if ptdia1[1] >= tmp1[1]:
+                    tmp1[1] = ptdia1[1]
+            dia0 = tmp0
+            dia1 = tmp1
+
             fp = Footprint(pad_list,footprint.position, footprint.entryName, dia0, dia1)
             self.footprint_list.append(fp)
             

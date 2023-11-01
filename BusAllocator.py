@@ -40,12 +40,21 @@ class BusAllocator:
         return targrtpoint 
 
     
-    def AllocZone(self, dia0, dia1, point):
+    def AllocZone(self, dia0, dia1, point, FpPos, RefFpPos):
         centralpoint = ((dia0[0]+dia1[0])/2, (dia0[1]+dia1[1])/2)
         sizex = dia1[0] - dia0[0]
         sizey = dia1[1] - dia0[1]
-        if (sizex > 2.5*sizey) | (sizey > 2.5*sizex):
-            return 0
+        if (sizex > 2.5*sizey):
+            if RefFpPos.Y >= FpPos.Y :
+                return 0
+            else: 
+                return 2
+        if (sizey > 2.5*sizex):
+            if RefFpPos.X >= FpPos.X :
+                return 1
+            else: 
+                return 3
+           
         if point[0]-centralpoint[0] == 0:
             if (point[1]-centralpoint[1])>0:
                 return 0 
@@ -106,26 +115,26 @@ class BusAllocator:
 
         for i in range(len(MFPList)):
             PadNet1 = self.NetsInFP(MFPList[i])
-            sortPN1 = []
-            zone0 = []
-            zone1 = []
-            zone2 = []
-            zone3 = []
-            for padnet in PadNet1:
-                x = self.AllocZone(MFPList[i].dia_pos_0,MFPList[i].dia_pos_1, (padnet[0].position[0],padnet[0].position[1]))
-                if x == 0:
-                    zone0.append(padnet)
-                if x == 1:
-                    zone1.append(padnet)
-                if x == 2:
-                    zone2.append(padnet) 
-                if x == 3:
-                    zone3.append(padnet)
-            sortPN1 = [zone0, zone1, zone2, zone3]
 
         
 
             for j in range(i+1,len(MFPList)):
+                sortPN1 = []
+                zone0 = []
+                zone1 = []
+                zone2 = []
+                zone3 = []
+                for padnet in PadNet1:
+                    x = self.AllocZone(MFPList[i].dia_pos_0,MFPList[i].dia_pos_1, (padnet[0].position[0],padnet[0].position[1]),MFPList[i].position , MFPList[j].position)
+                    if x == 0:
+                        zone0.append(padnet)
+                    if x == 1:
+                        zone1.append(padnet)
+                    if x == 2:
+                        zone2.append(padnet) 
+                    if x == 3:
+                        zone3.append(padnet)
+                sortPN1 = [zone0, zone1, zone2, zone3]
                 PadNet2 = self.NetsInFP(MFPList[j])
                 sortPN2 = []
                 zone0 = []
@@ -133,7 +142,7 @@ class BusAllocator:
                 zone2 = []
                 zone3 = []
                 for padnet in PadNet2:
-                    x = self.AllocZone(MFPList[j].dia_pos_0,MFPList[j].dia_pos_1, (padnet[0].position[0],padnet[0].position[1]))
+                    x = self.AllocZone(MFPList[j].dia_pos_0,MFPList[j].dia_pos_1, (padnet[0].position[0],padnet[0].position[1]), MFPList[j].position, MFPList[i].position)
                     if x == 0:
                         zone0.append(padnet)
                     if x == 1:
@@ -357,7 +366,7 @@ class Drawer():
 
 
 
-        plt.savefig('figs/new/bench2.png')
+        plt.savefig('figs/new/bench1.png')
         plt.show()
 
 
@@ -371,8 +380,14 @@ if __name__ == '__main__':
     gridParameters = GridParameters(benchmark_file, project_file, save_file)
     busallocator = BusAllocator(gridParameters)
     busallocator.allocate()
+    with open('parameters.txt' ,'w') as file:
+        file.write('(Bus')
     for Bus in busallocator.BusList:
+        with open('parameters.txt' ,'a') as file:
+            file.write('(Bus{} (start (X {})(Y {})) (end (X {})(Y {})) (width {})) '.format(Bus.BusID, Bus.Bus_start[0],Bus.Bus_start[1], Bus.Bus_end[0], Bus.Bus_end[1],Bus.BusWidth))
         print(Bus.BusID,Bus.Bus_start,Bus.Bus_end,Bus.BusWidth)
+    with open('parameters.txt' ,'a') as file:
+        file.write(')')
     drawer = Drawer(busallocator.BusList, gridParameters)
     drawer.draw()
 
