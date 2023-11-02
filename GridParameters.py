@@ -7,7 +7,7 @@ from kiutils_pro import KiCadPro
 
 
 class Pad:
-    def __init__(self, pos, layer, shape, size, pad_type, net_id):
+    def __init__(self, pos, layer, shape, size, pad_type, net_id, dia0, dia1):
         self.position_real = pos
         self.layer = layer
         self.shape = shape
@@ -17,7 +17,8 @@ class Pad:
 
         self.position = [to_grid_coord_round_down(pos[0]), to_grid_coord_round_down(pos[1]), pos[2]]
         self.size = [to_grid_coord_round_up(size[0]), to_grid_coord_round_up(size[1])]
-        
+        self.pad_dia0 = dia0
+        self.pad_dia1 = dia1       
 
 class Net:
     def __init__(self, net_id, net_name, net_class):
@@ -31,6 +32,9 @@ class Footprint:
         self.pads = pads
         self.position = position
         self.fpname = name
+        self.dia_pos_0_real = [dia0[0],dia0[1]]
+        self.dia_pos_1_real = [dia1[0],dia1[1]]
+        self.size_real = (self.dia_pos_1_real[0] - self.dia_pos_0_real[0],self.dia_pos_1_real[1] - self.dia_pos_0_real[1])
         self.dia_pos_0 = [to_grid_coord_round_down(dia0[0]),to_grid_coord_round_down(dia0[1])]
         self.dia_pos_1 = [to_grid_coord_round_down(dia1[0]),to_grid_coord_round_down(dia1[1])]
         self.size = (self.dia_pos_1[0] - self.dia_pos_0[0],self.dia_pos_1[1] - self.dia_pos_0[1])
@@ -119,6 +123,7 @@ class GridParameters:
         # net_list.pop(0)
         self.pad_obstacles = []
         self.footprint_list = []
+        self.padlist = []
         self.fp = board.footprints
         for footprint in board.footprints:
 #            boundary_list = footprint.graphicItems
@@ -282,12 +287,13 @@ class GridParameters:
                 pad_size = [abs(size_x), abs(size_y)]
                 pad_shape = pad.shape
                 if pad.net:
-                    board_pad = Pad(pad_pos, footprint.layer, pad_shape, pad_size, pad.type, pad.net.number)
+                    board_pad = Pad(pad_pos, footprint.layer, pad_shape, pad_size, pad.type, pad.net.number, ptdia0, ptdia1)
                     net_list[pad.net.number].padList.append(board_pad)
                 else:
-                    board_pad = Pad(pad_pos, footprint.layer, pad_shape, pad_size, pad.type, None)
+                    board_pad = Pad(pad_pos, footprint.layer, pad_shape, pad_size, pad.type, None, ptdia0, ptdia1)
                     self.pad_obstacles.append(board_pad)
                 pad_list.append(board_pad)
+                self.padlist.append(board_pad)
                 if ptdia0[0] <= tmp0[0]:
                     tmp0[0] = ptdia0[0]
                 if ptdia0[1] <= tmp0[1]:

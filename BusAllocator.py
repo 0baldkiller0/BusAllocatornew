@@ -1,6 +1,7 @@
 from GridParameters import GridParameters
 import argparse
 import matplotlib.pyplot as plt
+import pythoninterfacenew2 as io
 
 
 class Bus:
@@ -19,6 +20,9 @@ class BusAllocator:
         self.FootprintList = grid_parameter.footprint_list
         self.parameters = grid_parameter
         self.BusList = []
+        self.dia0 = grid_parameter.dia_pos_0
+        self.dia1 = grid_parameter.dia_pos_1
+        self.padlist = grid_parameter.padlist
 
         
     def is_near(self,pad1, pad2, MaxDistance):
@@ -142,7 +146,7 @@ class BusAllocator:
                 zone2 = []
                 zone3 = []
                 for padnet in PadNet2:
-                    x = self.AllocZone(MFPList[j].dia_pos_0,MFPList[j].dia_pos_1, (padnet[0].position[0],padnet[0].position[1]), MFPList[j].position, MFPList[i].position)
+                    x = self.AllocZone(MFPList[j].dia_pos_0_real,MFPList[j].dia_pos_1_real, (padnet[0].position_real[0],padnet[0].position_real[1]), MFPList[j].position, MFPList[i].position)
                     if x == 0:
                         zone0.append(padnet)
                     if x == 1:
@@ -210,8 +214,8 @@ class BusAllocator:
                                 end_sum_y = 0
 #                                startpoints = []
                                 for pin in StartBusPins_temp[netclass]:
-                                    start_sum_x += pin.position[0]
-                                    start_sum_y += pin.position[1]
+                                    start_sum_x += pin.position_real[0]
+                                    start_sum_y += pin.position_real[1]
                                     #startpoints.append((pin.position[0],pin.position[1]))
         
                                 Bus_start_x = start_sum_x/len(StartBusPins_temp[netclass])
@@ -219,28 +223,28 @@ class BusAllocator:
         
                                 for pin in EndBusPins_temp[netclass]:
         
-                                    end_sum_x += pin.position[0]
-                                    end_sum_y += pin.position[1]
+                                    end_sum_x += pin.position_real[0]
+                                    end_sum_y += pin.position_real[1]
                                 
                                 Bus_end_x = end_sum_x/len(EndBusPins_temp[netclass])
                                 Bus_end_y = end_sum_y/len(EndBusPins_temp[netclass]) 
                                 if a == 0:
-                                    Bus_start_y = MFPList[i].dia_pos_1[1]
+                                    Bus_start_y = MFPList[i].dia_pos_1_real[1]
                                 elif a== 1:
-                                    Bus_start_x = MFPList[i].dia_pos_1[0]
+                                    Bus_start_x = MFPList[i].dia_pos_1_real[0]
                                 elif a== 2:
-                                    Bus_start_y = MFPList[i].dia_pos_0[1]
+                                    Bus_start_y = MFPList[i].dia_pos_0_real[1]
                                 elif a== 3:
-                                    Bus_start_x = MFPList[i].dia_pos_0[0]
+                                    Bus_start_x = MFPList[i].dia_pos_0_real[0]
 
                                 if b == 0:
-                                    Bus_end_y = MFPList[j].dia_pos_1[1]
+                                    Bus_end_y = MFPList[j].dia_pos_1_real[1]
                                 elif b == 1:
-                                    Bus_end_x = MFPList[j].dia_pos_1[0]
+                                    Bus_end_x = MFPList[j].dia_pos_1_real[0]
                                 elif b == 2:
-                                    Bus_end_y = MFPList[j].dia_pos_0[1]
+                                    Bus_end_y = MFPList[j].dia_pos_0_real[1]
                                 elif b == 3:
-                                    Bus_end_x = MFPList[j].dia_pos_0[0]                                                                
+                                    Bus_end_x = MFPList[j].dia_pos_0_real[0]                                                                
                                 Bus_start = (Bus_start_x,Bus_start_y)
                                 Bus_end = (Bus_end_x, Bus_end_y)
 #                                allocated_sp = self.AllocZone(MFPList[i].dia_pos_0,MFPList[i].dia_pos_1, [Bus_start_tmp])
@@ -325,16 +329,16 @@ class Drawer():
         print(sizex,sizey)
         fig,ax = plt.subplots(figsize = (sizex/10,sizey/10))
         expand = 0
-        plt.xlim(0-expand,12*sizex+expand)
-        plt.ylim(0-expand,12*sizey+expand)
+        plt.xlim(0-expand,sizex+expand)
+        plt.ylim(0-expand,sizey+expand)
         padx = []
         pady = []
         color = []
         for fp in self.gridparameters.footprint_list:
             for pad in fp.pads:
-                padx.append(pad.position[0])
-                pady.append(pad.position[1])
-                edge = self.AllocZone(fp.dia_pos_0,fp.dia_pos_1, (pad.position[0],pad.position[1]))
+                padx.append(pad.position_real[0])
+                pady.append(pad.position_real[1])
+                edge = self.AllocZone(fp.dia_pos_0_real,fp.dia_pos_1_real, (pad.position_real[0],pad.position_real[1]))
                 if  edge == 0:
                     color.append('g')
                 elif edge == 1:
@@ -351,14 +355,14 @@ class Drawer():
             busy = [bus.Bus_start[1],bus.Bus_end[1]]
             plt.plot(busx,busy, linewidth = bus.BusWidth, alpha = 0.5)
             for d in range(len(bus.StartPads)):
-                pads_x = [bus.StartPads[d].position[0],bus.EndPads[d].position[0]]
-                pads_y = [bus.StartPads[d].position[1],bus.EndPads[d].position[1]]
+                pads_x = [bus.StartPads[d].position_real[0],bus.EndPads[d].position_real[0]]
+                pads_y = [bus.StartPads[d].position_real[1],bus.EndPads[d].position_real[1]]
                 plt.plot(pads_x,pads_y,'k:',linewidth = 0.5, alpha= 0.5)
         for fp in self.footprint:
-            plt.plot([fp.dia_pos_0[0],fp.dia_pos_1[0]],[fp.dia_pos_0[1],fp.dia_pos_0[1]],'k',linewidth = 0.5, alpha= 1)
-            plt.plot([fp.dia_pos_0[0],fp.dia_pos_0[0]],[fp.dia_pos_0[1],fp.dia_pos_1[1]],'k',linewidth = 0.5, alpha= 1)
-            plt.plot([fp.dia_pos_0[0],fp.dia_pos_1[0]],[fp.dia_pos_1[1],fp.dia_pos_1[1]],'k',linewidth = 0.5, alpha= 1)
-            plt.plot([fp.dia_pos_1[0],fp.dia_pos_1[0]],[fp.dia_pos_0[1],fp.dia_pos_1[1]],'k',linewidth = 0.5, alpha= 1)
+            plt.plot([fp.dia_pos_0_real[0],fp.dia_pos_1_real[0]],[fp.dia_pos_0_real[1],fp.dia_pos_0_real[1]],'k',linewidth = 0.5, alpha= 1)
+            plt.plot([fp.dia_pos_0_real[0],fp.dia_pos_0_real[0]],[fp.dia_pos_0_real[1],fp.dia_pos_1_real[1]],'k',linewidth = 0.5, alpha= 1)
+            plt.plot([fp.dia_pos_0_real[0],fp.dia_pos_1_real[0]],[fp.dia_pos_1_real[1],fp.dia_pos_1_real[1]],'k',linewidth = 0.5, alpha= 1)
+            plt.plot([fp.dia_pos_1_real[0],fp.dia_pos_1_real[0]],[fp.dia_pos_0_real[1],fp.dia_pos_1_real[1]],'k',linewidth = 0.5, alpha= 1)
 
             
 #        plt.xlim((self.gridparameters.dia_pos_0[0],self.gridparameters.dia_pos_1[0]))
@@ -388,8 +392,22 @@ if __name__ == '__main__':
         print(Bus.BusID,Bus.Bus_start,Bus.Bus_end,Bus.BusWidth)
     with open('parameters.txt' ,'a') as file:
         file.write(')')
+
+    filePath = r'output.txt'
+    bus = io.Bus(filePath)
+    bus.to_file(busallocator.BusList,filePath)
+    boundarypoints = [busallocator.dia0, busallocator.dia1]
+    board = io.BoundaryPoints(filePath)
+    board.to_file(boundarypoints,filePath)
+    padlist = busallocator.padlist
+    component = io.Components(filePath)
+    component.to_file(padlist,filePath)
+
     drawer = Drawer(busallocator.BusList, gridParameters)
     drawer.draw()
+
+
+
 
 
 
