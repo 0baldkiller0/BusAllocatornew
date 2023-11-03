@@ -12,6 +12,7 @@ class Bus:
         self.Bus_end = Bus_end
         self.EndPads = EndPads
         self.BusWidth = BusWidth
+        
 
 class BusAllocator:
     def __init__(self, grid_parameter: GridParameters):
@@ -280,9 +281,9 @@ class BusAllocator:
 
 def allocator_arguments():
     parser = argparse.ArgumentParser('BusAllocator')
-    parser.add_argument('--kicad_pcb', type=str, dest='kicad_pcb', default="bench4/bm4.unrouted.kicad_pcb")
-    parser.add_argument('--kicad_pro', type=str, dest='kicad_pro', default="bench4/bm4.unrouted.kicad_pro")
-    parser.add_argument('--save_file', type=str, dest='save_file', default="bench4/bm4.routed.kicad_pcb")
+    parser.add_argument('--kicad_pcb', type=str, dest='kicad_pcb', default="bench1/bm1.unrouted.kicad_pcb")
+    parser.add_argument('--kicad_pro', type=str, dest='kicad_pro', default="bench1/bm1.unrouted.kicad_pro")
+    parser.add_argument('--save_file', type=str, dest='save_file', default="bench1/bm1.routed.kicad_pcb")
     return parser.parse_args()
 
 class Drawer():
@@ -354,6 +355,7 @@ class Drawer():
             busx = [bus.Bus_start[0],bus.Bus_end[0]]
             busy = [bus.Bus_start[1],bus.Bus_end[1]]
             plt.plot(busx,busy, linewidth = bus.BusWidth, alpha = 0.5)
+            plt.text(bus.Bus_start[0], bus.Bus_start[1], s=bus.BusID)
             for d in range(len(bus.StartPads)):
                 pads_x = [bus.StartPads[d].position_real[0],bus.EndPads[d].position_real[0]]
                 pads_y = [bus.StartPads[d].position_real[1],bus.EndPads[d].position_real[1]]
@@ -370,7 +372,7 @@ class Drawer():
 
 
 
-        plt.savefig('figs/new/bench4.png')
+        plt.savefig('figs/new/bench1.png')
         plt.show()
 
 
