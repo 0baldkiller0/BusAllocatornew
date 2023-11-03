@@ -104,7 +104,7 @@ class Bus(Element):
             result += "\n" + " " * indent
         result += f"((Bus"
         for i,bus in enumerate(BusList):
-            result += f"(Bus{str(i)}(start(x {bus.Bus_start[0]})(y {bus.Bus_start[1]}))(end(x {bus.Bus_end[0]})(y {bus.Bus_end[1]}))(width {bus.BusWidth}))"
+            result += f"(Bus{str(i)}(start(x {bus.Bus_start[0]})(y {bus.Bus_start[1]}))(end(x {bus.Bus_end[0]})(y {bus.Bus_end[1]}))(width {bus.BusWidth}))" ## TODO：可能还要加上Bus里排序好的netID
             if newline:
                 result += "\n" + " " * indent
             else:
@@ -128,7 +128,7 @@ class BoundaryPoints(Element):
     def __init__(self,filePath: str, encoding: Optional[str] = None):
         self.filePath = filePath
     @classmethod
-#ToDo: 第163行进行了参数数目的改动，所以from_sexpr相应的也要重写
+#TODO: 第163行进行了参数数目的改动，所以from_sexpr相应的也要重写
     def from_sexpr(cls,exp:list):
         read = exp[1]#read这里是没问题的
         BoundaryPoints = []

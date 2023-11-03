@@ -5,14 +5,15 @@ import pythoninterfacenew2 as io
 
 
 class Bus:
-    def __init__(self, BusID, Bus_start, StartPads, Bus_end, EndPads, BusWidth):
+    def __init__(self, BusID, Bus_start, StartPads, Bus_end, EndPads, BusWidth, nets):
         self.BusID = BusID
         self.Bus_start = Bus_start
         self.StartPads = StartPads
         self.Bus_end = Bus_end
         self.EndPads = EndPads
         self.BusWidth = BusWidth
-
+        self.netsID = nets
+ 
 class BusAllocator:
     def __init__(self, grid_parameter: GridParameters):
         self.netclass = grid_parameter.netClass
@@ -35,11 +36,11 @@ class BusAllocator:
     def search_nearest(self,point,pads):
         tmp = float('inf')
         for pad in pads:
-            dx = pad.position[0] - point[0]
-            dy = pad.position[1] - point[1]
+            dx = pad.position_real[0] - point[0]
+            dy = pad.position_real[1] - point[1]
             distance = (dx**2+dy**2)**0.5
             if distance <= tmp:
-                targrtpoint = (pad.position[0],pad.position[1])
+                targrtpoint = (pad.position_real[0],pad.position_real[1])
                 tmp = distance
         return targrtpoint 
 
@@ -129,7 +130,7 @@ class BusAllocator:
                 zone2 = []
                 zone3 = []
                 for padnet in PadNet1:
-                    x = self.AllocZone(MFPList[i].dia_pos_0,MFPList[i].dia_pos_1, (padnet[0].position[0],padnet[0].position[1]),MFPList[i].position , MFPList[j].position)
+                    x = self.AllocZone(MFPList[i].dia_pos_0_real,MFPList[i].dia_pos_1_real, (padnet[0].position_real[0],padnet[0].position_real[1]),MFPList[i].position , MFPList[j].position)
                     if x == 0:
                         zone0.append(padnet)
                     if x == 1:
@@ -166,6 +167,7 @@ class BusAllocator:
                         StartID_temp = {}
                         EndID_temp = {}
                         BusWidth_temp = {}
+                        NetInBus = {}
                         for num in  range(len(sortPN1[a])):  #initialize the dict
                             padnetclass = self.parameters.netid_to_net[sortPN1[a][num][1]].netClass
                             if padnetclass not in classes.keys():
@@ -174,13 +176,16 @@ class BusAllocator:
                                 EndBusPins_temp[padnetclass] = []
                                 StartID_temp[padnetclass] = []
                                 EndID_temp[padnetclass] = []
+                                NetInBus[padnetclass] = []
                                 BusWidth_temp[padnetclass] = 0
         
         
                         for m in range(len(sortPN1[a])):
+                            pad1 = sortPN1[a][m][0]
                             net1 = sortPN1[a][m][1]
                             netclass1 = self.parameters.netid_to_class[net1]
                             for n in  range(len(sortPN2[b])):
+                                pad2 = sortPN2[b][n][0]
                                 net2 = sortPN2[b][n][1]
                                 with open('debug.txt' ,'a') as file:
                                     file.write('({},{})'.format(self.parameters.id_to_name[net1],self.parameters.id_to_name[net2]))
@@ -192,8 +197,10 @@ class BusAllocator:
                                         clearance_with_track = netclass1.clearance + netclass1.track_width
                                         StartID_temp[self.parameters.netid_to_net[net1].netClass].append(net1)
                                         EndID_temp[self.parameters.netid_to_net[net1].netClass].append(net2)
-                                        StartBusPins_temp[self.parameters.netid_to_net[net1].netClass].append(sortPN1[a][m][0])
-                                        EndBusPins_temp[self.parameters.netid_to_net[net1].netClass].append(sortPN2[b][n][0])
+                                        StartBusPins_temp[self.parameters.netid_to_net[net1].netClass].append(pad1)
+                                        EndBusPins_temp[self.parameters.netid_to_net[net1].netClass].append(pad2)
+                                        HPWL = abs(pad1.position_real[0] - pad2.position_real[0]) + abs(pad1.position_real[1] - pad2.position_real[1])
+                                        NetInBus[self.parameters.netid_to_net[net1].netClass].append((net1, HPWL))
                                         BusWidth_temp[self.parameters.netid_to_net[net1].netClass] += clearance_with_track
         
                                         break
@@ -272,17 +279,21 @@ class BusAllocator:
 #                                            Bus_end = (2.54*MFPList[j].dia_pos_0[0],Bus_end_tmp[1])
         
                                 BusWidth = BusWidth_temp[netclass]
+                                for i in range(1, len(NetInBus[netclass])):
+                                    for j in range(0, len(NetInBus[netclass])-i):
+                                        if NetInBus[netclass][j][1] > NetInBus[netclass][j+1][1]:
+                                            NetInBus[netclass][j], NetInBus[netclass][j + 1] = NetInBus[netclass][j + 1], NetInBus[netclass][j]
 #                                Bus_start = self.search_nearest(Bus_start,StartBusPins_temp[netclass])
 #                                Bus_end = self.search_nearest(Bus_end,EndBusPins_temp[netclass])
-                                bus = Bus(BusID,Bus_start,StartBusPins_temp[netclass],Bus_end,EndBusPins_temp[netclass],BusWidth)
+                                bus = Bus(BusID,Bus_start,StartBusPins_temp[netclass],Bus_end,EndBusPins_temp[netclass],BusWidth, NetInBus[netclass])
                                 self.BusList.append(bus)
                                 BusID +=1
 
 def allocator_arguments():
     parser = argparse.ArgumentParser('BusAllocator')
-    parser.add_argument('--kicad_pcb', type=str, dest='kicad_pcb', default="bench4/bm4.unrouted.kicad_pcb")
-    parser.add_argument('--kicad_pro', type=str, dest='kicad_pro', default="bench4/bm4.unrouted.kicad_pro")
-    parser.add_argument('--save_file', type=str, dest='save_file', default="bench4/bm4.routed.kicad_pcb")
+    parser.add_argument('--kicad_pcb', type=str, dest='kicad_pcb', default="bench1/bm1.unrouted.kicad_pcb")
+    parser.add_argument('--kicad_pro', type=str, dest='kicad_pro', default="bench1/bm1.unrouted.kicad_pro")
+    parser.add_argument('--save_file', type=str, dest='save_file', default="bench1/bm1.routed.kicad_pcb")
     return parser.parse_args()
 
 class Drawer():
@@ -354,6 +365,7 @@ class Drawer():
             busx = [bus.Bus_start[0],bus.Bus_end[0]]
             busy = [bus.Bus_start[1],bus.Bus_end[1]]
             plt.plot(busx,busy, linewidth = bus.BusWidth, alpha = 0.5)
+            plt.text(bus.Bus_start[0], bus.Bus_start[1], s=bus.BusID)
             for d in range(len(bus.StartPads)):
                 pads_x = [bus.StartPads[d].position_real[0],bus.EndPads[d].position_real[0]]
                 pads_y = [bus.StartPads[d].position_real[1],bus.EndPads[d].position_real[1]]
@@ -370,7 +382,7 @@ class Drawer():
 
 
 
-        plt.savefig('figs/new/bench4.png')
+        plt.savefig('figs/new/bench1.png')
         plt.show()
 
 
@@ -389,7 +401,7 @@ if __name__ == '__main__':
     for Bus in busallocator.BusList:
         with open('parameters.txt' ,'a') as file:
             file.write('(Bus{} (start (X {})(Y {})) (end (X {})(Y {})) (width {})) '.format(Bus.BusID, Bus.Bus_start[0],Bus.Bus_start[1], Bus.Bus_end[0], Bus.Bus_end[1],Bus.BusWidth))
-        print(Bus.BusID,Bus.Bus_start,Bus.Bus_end,Bus.BusWidth)
+        print(Bus.BusID,Bus.Bus_start,Bus.Bus_end,Bus.BusWidth, Bus.netsID)
     with open('parameters.txt' ,'a') as file:
         file.write(')')
 
