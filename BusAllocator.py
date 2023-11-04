@@ -5,13 +5,14 @@ import pythoninterfacenew2 as io
 
 
 class Bus:
-    def __init__(self, BusID, Bus_start, StartPads, Bus_end, EndPads, BusWidth):
+    def __init__(self, BusID, Bus_start, StartPads, Bus_end, EndPads, BusWidth,nets):
         self.BusID = BusID
         self.Bus_start = Bus_start
         self.StartPads = StartPads
         self.Bus_end = Bus_end
         self.EndPads = EndPads
         self.BusWidth = BusWidth
+        self.netsID = nets
         
 
 class BusAllocator:
@@ -167,6 +168,7 @@ class BusAllocator:
                         StartID_temp = {}
                         EndID_temp = {}
                         BusWidth_temp = {}
+                        NetInBus = {}
                         for num in  range(len(sortPN1[a])):  #initialize the dict
                             padnetclass = self.parameters.netid_to_net[sortPN1[a][num][1]].netClass
                             if padnetclass not in classes.keys():
@@ -175,14 +177,17 @@ class BusAllocator:
                                 EndBusPins_temp[padnetclass] = []
                                 StartID_temp[padnetclass] = []
                                 EndID_temp[padnetclass] = []
+                                NetInBus[padnetclass] = []
                                 BusWidth_temp[padnetclass] = 0
         
         
                         for m in range(len(sortPN1[a])):
                             net1 = sortPN1[a][m][1]
+                            pad1 = sortPN1[a][m][0]
                             netclass1 = self.parameters.netid_to_class[net1]
                             for n in  range(len(sortPN2[b])):
                                 net2 = sortPN2[b][n][1]
+                                pad2 = sortPN2[b][n][0]
                                 with open('debug.txt' ,'a') as file:
                                     file.write('({},{})'.format(self.parameters.id_to_name[net1],self.parameters.id_to_name[net2]))
                                 if (net1 == net2) & (net1 not in StartID_temp) & (net2 not in EndID_temp) :
@@ -195,6 +200,8 @@ class BusAllocator:
                                         EndID_temp[self.parameters.netid_to_net[net1].netClass].append(net2)
                                         StartBusPins_temp[self.parameters.netid_to_net[net1].netClass].append(sortPN1[a][m][0])
                                         EndBusPins_temp[self.parameters.netid_to_net[net1].netClass].append(sortPN2[b][n][0])
+                                        HPWL = abs(pad1.position_real[0] - pad2.position_real[0]) + abs(pad1.position_real[1] - pad2.position_real[1])
+                                        NetInBus[self.parameters.netid_to_net[net1].netClass].append((net1, HPWL))
                                         BusWidth_temp[self.parameters.netid_to_net[net1].netClass] += clearance_with_track
         
                                         break
@@ -273,9 +280,12 @@ class BusAllocator:
 #                                            Bus_end = (2.54*MFPList[j].dia_pos_0[0],Bus_end_tmp[1])
         
                                 BusWidth = BusWidth_temp[netclass]
+                                def takeSecond(elem):
+                                    return elem[1]
+                                NetInBus[netclass].sort(key = takeSecond)
 #                                Bus_start = self.search_nearest(Bus_start,StartBusPins_temp[netclass])
 #                                Bus_end = self.search_nearest(Bus_end,EndBusPins_temp[netclass])
-                                bus = Bus(BusID,Bus_start,StartBusPins_temp[netclass],Bus_end,EndBusPins_temp[netclass],BusWidth)
+                                bus = Bus(BusID,Bus_start,StartBusPins_temp[netclass],Bus_end,EndBusPins_temp[netclass],BusWidth, NetInBus[netclass])
                                 self.BusList.append(bus)
                                 BusID +=1
 
@@ -391,7 +401,7 @@ if __name__ == '__main__':
     for Bus in busallocator.BusList:
         with open('parameters.txt' ,'a') as file:
             file.write('(Bus{} (start (X {})(Y {})) (end (X {})(Y {})) (width {})) '.format(Bus.BusID, Bus.Bus_start[0],Bus.Bus_start[1], Bus.Bus_end[0], Bus.Bus_end[1],Bus.BusWidth))
-        print(Bus.BusID,Bus.Bus_start,Bus.Bus_end,Bus.BusWidth)
+        print(Bus.BusID,Bus.Bus_start,Bus.Bus_end,Bus.BusWidth,  Bus.netsID)
     with open('parameters.txt' ,'a') as file:
         file.write(')')
 
