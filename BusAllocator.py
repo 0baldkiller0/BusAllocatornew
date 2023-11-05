@@ -1,7 +1,7 @@
 from GridParameters import GridParameters
 import argparse
 import matplotlib.pyplot as plt
-import pythoninterfacenew2 as io
+import pythoninterfacenew3 as io
 
 
 class Bus:
@@ -283,9 +283,13 @@ class BusAllocator:
                                 def takeSecond(elem):
                                     return elem[1]
                                 NetInBus[netclass].sort(key = takeSecond)
+                                onlynets = []
+                                for net in NetInBus[netclass]:
+                                    onlynets.append(net[0])
+
 #                                Bus_start = self.search_nearest(Bus_start,StartBusPins_temp[netclass])
 #                                Bus_end = self.search_nearest(Bus_end,EndBusPins_temp[netclass])
-                                bus = Bus(BusID,Bus_start,StartBusPins_temp[netclass],Bus_end,EndBusPins_temp[netclass],BusWidth, NetInBus[netclass])
+                                bus = Bus(BusID,Bus_start,StartBusPins_temp[netclass],Bus_end,EndBusPins_temp[netclass],BusWidth, onlynets)
                                 self.BusList.append(bus)
                                 BusID +=1
 
@@ -405,18 +409,51 @@ if __name__ == '__main__':
     with open('parameters.txt' ,'a') as file:
         file.write(')')
 
+
+    drawer = Drawer(busallocator.BusList, gridParameters)
+    drawer.draw()
+
+    class Position:
+        def __init__(self,x,y):
+            self.x = x
+            self.y = y
+    class Boundarypoints:
+        def __init__(self,x1,y1,x2,y2):
+            self.start = Position(x1,y1)
+            self.end = Position(x2,y2)
+    
+    
     filePath = r'output.txt'
+    # output test
     bus = io.Bus(filePath)
     bus.to_file(busallocator.BusList,filePath)
-    boundarypoints = [busallocator.dia0, busallocator.dia1]
+
+    boundarypoints = [Boundarypoints(busallocator.dia0[0], busallocator.dia0[1], busallocator.dia1[0], busallocator.dia1[1])]
     board = io.BoundaryPoints(filePath)
     board.to_file(boundarypoints,filePath)
+
     padlist = busallocator.padlist
     component = io.Components(filePath)
     component.to_file(padlist,filePath)
 
-    drawer = Drawer(busallocator.BusList, gridParameters)
-    drawer.draw()
+    path = io.PathList(filePath)
+    pathlist = []
+    path.to_file(pathlist,filePath)
+
+    # input test
+
+    buslistx = bus.from_file(filePath)
+    for Bus in buslistx:
+        print(Bus.Bus_start,Bus.Bus_end,Bus.BusWidth,Bus.netsID)
+    boardx = board.from_file(filePath)
+    for board in boardx:
+        print('dia0 {} dia1 {}'.format((board.start.x, board.start.y),(board.end.x, board.end.y)))
+    componentx = component.from_file(filePath)
+    for cp in componentx:
+        print(cp.type, cp.pad_dia0,cp.pad_dia1)
+
+
+
 
 
 
