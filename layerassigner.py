@@ -2,6 +2,7 @@ from ast import Pass
 import BusAllocator
 import random
 import matplotlib.pyplot as plt
+import copy
 
 
 # for package, not the hole board 
@@ -275,26 +276,77 @@ def Legalization2(dialist,target,boundarydiapair, base, devide):
                 dia1 = [dia0[0] + edge_length, dia0[1] + edge_length]
             dialist.append([dia0, dia1])
 class VitualWall:
-    def __init__(self,point1, point2, comp1, comp2):
+    def __init__(self,point1, point2, comp1, comp2, nb):
         self.comps = [comp1,comp2]
         self.point = [point1,point2]
+        self.nb = nb
 
 def evaluate(vitualwall, ):
     Pass
 
-def isadjacent(comppair)->int: #TODO consider other comp between comppair
+def isadjacent(comppair)->int: #TODO consider other comp between comppair (over)
     comp1 = comppair[0]
     comp2 = comppair[1]
     if (comp2.dia0[0]>=comp1.dia1[0]) and comp2.dia0[1] < comp1.dia1[1] and comp2.dia1[1] > comp1.dia0[1]:
-        return 1
+        dir = 1
     elif (comp2.dia0[1]<=comp1.dia1[1]) and comp2.dia0[0] < comp1.dia1[0] and comp2.dia1[1] > comp1.dia0[1]:
-        return 2
+        dir = 2
     elif (comp2.dia1[0]<=comp1.dia0[0]) and comp2.dia0[1] < comp1.dia1[1] and comp2.dia1[1] > comp1.dia0[1]:
-        return 3
+        dir = 3
     elif (comp2.dia0[1]>=comp1.dia1[1]) and comp2.dia0[0] < comp1.dia1[0] and comp2.dia1[0] > comp1.dia0[0]:
-        return 0
+        dir = 0
     else:
         return 4 
+    for comp in comp_list: 
+        dias = [comp.dia0, comp.dia1]
+        if dir == 0:
+            if comp2.dia1[0] <= comp1.dia1[0]:
+                if comp2.dia0[0] <= comp1.dia0[0]:
+                    zone = [comp1.dia0,comp2.dia1]
+                else:
+                    zone = [[comp2.dia0[0],comp1.dia1[1]],[comp2.dia1[0],comp2.dia0[1]]]
+            else:
+                if comp2.dia0[0] <= comp1.dia0[0]:
+                    zone = [[comp1.dia0[0],comp1.dia1[1]],[comp1.dia1[0],comp2.dia0[1]]]
+                else:
+                    zone = [[comp2.dia0[0],comp1.dia1[1]],[comp1.dia1[0],comp2.dia0[1]]]
+        elif dir == 1:
+            if comp2.dia1[1] <= comp1.dia1[1]:
+                if comp2.dia0[1] <= comp1.dia0[1]:
+                    zone = [comp1.dia0,comp2.dia1]
+                else:
+                    zone = [[comp1.dia1[0],comp2.dia0[1]],[comp2.dia0[0],comp2.dia1[1]]]
+            else:
+                if comp2.dia0[1] <= comp1.dia0[1]:
+                    zone = [[comp1.dia1[0],comp1.dia0[1]],[comp2.dia1[0],comp1.dia1[1]]]
+                else:
+                    zone = [[comp1.dia1[0],comp2.dia0[1]],[comp2.dia1[0],comp1.dia1[1]]]
+        elif dir == 2:
+            if comp2.dia1[0] <= comp1.dia1[0]:
+                if comp2.dia0[0] <= comp1.dia0[0]:
+                    zone = [[comp1.dia0[0],comp2.dia1[1]],[comp2.dia1[0],comp1.dia0[1]]]
+                else:
+                    zone = [[comp2.dia0[0],comp2.dia1[1]],[comp2.dia1[0],comp1.dia0[1]]]
+            else:
+                if comp2.dia0[0] <= comp1.dia0[0]:
+                    zone = [[comp1.dia0[0],comp2.dia1[1]],[comp1.dia1[0],comp1.dia0[1]]]
+                else:
+                    zone = [[comp2.dia0[0],comp2.dia1[1]],[comp1.dia1[0],comp1.dia0[1]]]
+        elif dir == 3:
+            if comp2.dia1[1] <= comp1.dia1[1]:
+                if comp2.dia0[1] <= comp1.dia0[1]:
+                    zone = [[comp2.dia1[0],comp1.dia0[1]],[comp1.dia0[0],comp2.dia1[1]]]
+                else:
+                    zone = [[comp2.dia1[0],comp2.dia0[1]],[comp1.dia0[0],comp2.dia1[1]]]
+            else:
+                if comp2.dia0[1] <= comp1.dia0[1]:
+                    zone = [[comp2.dia1[0],comp2.dia0[1]],[comp1.dia0[0],comp1.dia1[1]]]
+                else:
+                    zone = [[comp2.dia1[0],comp1.dia0[1]],[comp1.dia0[0],comp1.dia1[1]]]
+        if isoverlap(dias,zone):
+            return 4
+        else:
+            return dir
 
 
 def localminimization(comppair, directions) -> VitualWall:
@@ -445,6 +497,31 @@ def localminimization(comppair, directions) -> VitualWall:
                 else:
                     if buslist[busid].end[1] < buslist[busid].start[1]:
                         nb0 +=1
+    for 
+
+def findwall(comppair,edge1,edge2,walls,nb0,type):  #walls must be null list.  type ==0 horizontal/ ==1 vertical
+    if not (edge1 or edge2):
+        return min 
+    else:
+        e1 = copy.deepcopy(edge1)
+        e2 = copy.deepcopy(edge2)
+        v1 = e1[0]
+        v2 = e2[0]
+        bus1 = v1[0]
+        bus2 = v2[0]
+        if type == 0:
+            if v1[1]:                    
+                if buslist[bus1].end[0] >= buslist[bus1].start[0]:
+                    
+            else:
+                if buslist[bus1].end[0] < buslist[bus1].start[0]:
+            
+            if bus1 == bus2:
+                e1.del()
+                e2.del
+
+
+
 
     
     
