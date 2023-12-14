@@ -1,7 +1,7 @@
 from GridParameters import GridParameters
 import argparse
 import matplotlib.pyplot as plt
-import pythoninterfacenew2 as io
+import pythoninterfacenew3 as io
 
 
 class Bus:
@@ -13,7 +13,8 @@ class Bus:
         self.EndPads = EndPads
         self.BusWidth = BusWidth
         self.netsID = nets
- 
+        
+
 class BusAllocator:
     def __init__(self, grid_parameter: GridParameters):
         self.netclass = grid_parameter.netClass
@@ -183,10 +184,12 @@ class BusAllocator:
                         for m in range(len(sortPN1[a])):
                             pad1 = sortPN1[a][m][0]
                             net1 = sortPN1[a][m][1]
+                            pad1 = sortPN1[a][m][0]
                             netclass1 = self.parameters.netid_to_class[net1]
                             for n in  range(len(sortPN2[b])):
                                 pad2 = sortPN2[b][n][0]
                                 net2 = sortPN2[b][n][1]
+                                pad2 = sortPN2[b][n][0]
                                 with open('debug.txt' ,'a') as file:
                                     file.write('({},{})'.format(self.parameters.id_to_name[net1],self.parameters.id_to_name[net2]))
                                 if (net1 == net2) & (net1 not in StartID_temp) & (net2 not in EndID_temp) :
@@ -197,8 +200,8 @@ class BusAllocator:
                                         clearance_with_track = netclass1.clearance + netclass1.track_width
                                         StartID_temp[self.parameters.netid_to_net[net1].netClass].append(net1)
                                         EndID_temp[self.parameters.netid_to_net[net1].netClass].append(net2)
-                                        StartBusPins_temp[self.parameters.netid_to_net[net1].netClass].append(pad1)
-                                        EndBusPins_temp[self.parameters.netid_to_net[net1].netClass].append(pad2)
+                                        StartBusPins_temp[self.parameters.netid_to_net[net1].netClass].append(sortPN1[a][m][0])
+                                        EndBusPins_temp[self.parameters.netid_to_net[net1].netClass].append(sortPN2[b][n][0])
                                         HPWL = abs(pad1.position_real[0] - pad2.position_real[0]) + abs(pad1.position_real[1] - pad2.position_real[1])
                                         NetInBus[self.parameters.netid_to_net[net1].netClass].append((net1, HPWL))
                                         BusWidth_temp[self.parameters.netid_to_net[net1].netClass] += clearance_with_track
@@ -279,13 +282,16 @@ class BusAllocator:
 #                                            Bus_end = (2.54*MFPList[j].dia_pos_0[0],Bus_end_tmp[1])
         
                                 BusWidth = BusWidth_temp[netclass]
-                                for i in range(1, len(NetInBus[netclass])):
-                                    for j in range(0, len(NetInBus[netclass])-i):
-                                        if NetInBus[netclass][j][1] > NetInBus[netclass][j+1][1]:
-                                            NetInBus[netclass][j], NetInBus[netclass][j + 1] = NetInBus[netclass][j + 1], NetInBus[netclass][j]
+                                def takeSecond(elem):
+                                    return elem[1]
+                                NetInBus[netclass].sort(key = takeSecond)
+                                onlynets = []
+                                for net in NetInBus[netclass]:
+                                    onlynets.append(net[0])
+
 #                                Bus_start = self.search_nearest(Bus_start,StartBusPins_temp[netclass])
 #                                Bus_end = self.search_nearest(Bus_end,EndBusPins_temp[netclass])
-                                bus = Bus(BusID,Bus_start,StartBusPins_temp[netclass],Bus_end,EndBusPins_temp[netclass],BusWidth, NetInBus[netclass])
+                                bus = Bus(BusID,Bus_start,StartBusPins_temp[netclass],Bus_end,EndBusPins_temp[netclass],BusWidth, onlynets)
                                 self.BusList.append(bus)
                                 BusID +=1
 
@@ -401,22 +407,55 @@ if __name__ == '__main__':
     for Bus in busallocator.BusList:
         with open('parameters.txt' ,'a') as file:
             file.write('(Bus{} (start (X {})(Y {})) (end (X {})(Y {})) (width {})) '.format(Bus.BusID, Bus.Bus_start[0],Bus.Bus_start[1], Bus.Bus_end[0], Bus.Bus_end[1],Bus.BusWidth))
-        print(Bus.BusID,Bus.Bus_start,Bus.Bus_end,Bus.BusWidth, Bus.netsID)
+        print(Bus.BusID,Bus.Bus_start,Bus.Bus_end,Bus.BusWidth,  Bus.netsID)
     with open('parameters.txt' ,'a') as file:
         file.write(')')
 
+
+    drawer = Drawer(busallocator.BusList, gridParameters)
+    drawer.draw()
+
+    class Position:
+        def __init__(self,x,y):
+            self.x = x
+            self.y = y
+    class Boundarypoints:
+        def __init__(self,x1,y1,x2,y2):
+            self.start = Position(x1,y1)
+            self.end = Position(x2,y2)
+    
+    
     filePath = r'output.txt'
+    # output test
     bus = io.Bus(filePath)
     bus.to_file(busallocator.BusList,filePath)
-    boundarypoints = [busallocator.dia0, busallocator.dia1]
+
+    boundarypoints = [Boundarypoints(busallocator.dia0[0], busallocator.dia0[1], busallocator.dia1[0], busallocator.dia1[1])]
     board = io.BoundaryPoints(filePath)
     board.to_file(boundarypoints,filePath)
+
     padlist = busallocator.padlist
     component = io.Components(filePath)
     component.to_file(padlist,filePath)
 
-    drawer = Drawer(busallocator.BusList, gridParameters)
-    drawer.draw()
+    path = io.PathList(filePath)
+    pathlist = []
+    path.to_file(pathlist,filePath)
+
+    # input test
+
+    buslistx = bus.from_file(filePath)
+    for Bus in buslistx:
+        print(Bus.Bus_start,Bus.Bus_end,Bus.BusWidth,Bus.netsID)
+    boardx = board.from_file(filePath)
+    for board in boardx:
+        print('dia0 {} dia1 {}'.format((board.start.x, board.start.y),(board.end.x, board.end.y)))
+    componentx = component.from_file(filePath)
+    for cp in componentx:
+        print(cp.type, cp.pad_dia0,cp.pad_dia1)
+
+
+
 
 
 
