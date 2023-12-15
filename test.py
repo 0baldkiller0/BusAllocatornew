@@ -119,3 +119,18 @@ x = [0,100,200,300,400]
 y = [0,100,200,300,400]
 plt.scatter(x,y)
 plt.show()
+
+
+if __name__ == '__main__':
+    class X:
+        def __init__(self,a , b) -> None:
+            self.a = a
+            self.b = b
+        
+    x = X(1,1)
+    class Y :
+        def __init__(self,X) -> None:
+            self.x =X
+
+    y = Y(None)
+    print(y.x)

@@ -1,9 +1,5 @@
-from ast import Pass
-from math import nan
-from os import splice
-from socket import MsgFlag
 
-from regex import F
+from ftplib import parse150
 import BusAllocator
 import random
 import matplotlib.pyplot as plt
@@ -159,22 +155,22 @@ class LayerAssigner:
                     item = [package.pkgID,bus.BusID,dir1,dir2]
                     if item not in directions:
                         directions.append([package.pkgID,bus.BusID,dir1,dir2])
-                        if 0 in dir1 :
-                            component[0].append([bus.busID,[bus.start[0],comp.dia1[1]]])
-                        if 1 in dir1 :
-                            component[1].append([bus.busID,[comp.dia1[0],bus.start[1]]])
-                        if 2 in dir1 :
-                            component[2].append([bus.busID,[bus.start[0],comp.dia0[1]]])
-                        if 3 in dir1 :
-                            component[3].append([bus.busID,[comp.dia0[0],bus.start[1]]])
-                        if 0 in dir2 :
-                            component[0].append([bus.busID,[bus.end[0],comp.dia1[1]]])
-                        if 1 in dir2 :
-                            component[1].append([bus.busID,[comp.dia1[0],bus.end[1]]])
-                        if 2 in dir2 :
-                            component[2].append([bus.busID,[bus.end[0],comp.dia0[1]]])
-                        if 3 in dir2 :
-                            component[3].append([bus.busID,[comp.dia0[0],bus.end[1]]])
+                    if 0 in dir1 :
+                        component[0].append([bus.BusID,[bus.start[0],comp.dia1[1]],0])
+                    if 1 in dir1 :
+                        component[1].append([bus.BusID,[comp.dia1[0],bus.start[1]],0])
+                    if 2 in dir1 :
+                        component[2].append([bus.BusID,[bus.start[0],comp.dia0[1]],0])
+                    if 3 in dir1 :
+                        component[3].append([bus.BusID,[comp.dia0[0],bus.start[1]],0])
+                    if 0 in dir2 :
+                        component[0].append([bus.BusID,[bus.end[0],comp.dia1[1]],1])
+                    if 1 in dir2 :
+                        component[1].append([bus.BusID,[comp.dia1[0],bus.end[1]],1])
+                    if 2 in dir2 :
+                        component[2].append([bus.BusID,[bus.end[0],comp.dia0[1]],1])
+                    if 3 in dir2 :
+                        component[3].append([bus.BusID,[comp.dia0[0],bus.end[1]],1])
                 component[0].sort(key = lambda x:x[1][0])
                 component[1].sort(key = lambda x:x[1][1],reverse=True)
                 component[2].sort(key = lambda x:x[1][0],reverse=True)
@@ -206,7 +202,7 @@ class Drawer:
                     plt.plot([comp.dia1[0],comp.dia1[0]], [comp.dia0[1],comp.dia1[1]], 'g',linewidth = 0.5, alpha= 1)
                     plt.plot([comp.dia0[0],comp.dia1[0]], [comp.dia1[1],comp.dia1[1]], 'g',linewidth = 0.5, alpha= 1)
                     plt.plot([comp.dia0[0],comp.dia0[0]], [comp.dia0[1],comp.dia1[1]], 'g',linewidth = 0.5, alpha= 1)
-                    plt.text(comp.dia0[0], comp.dia0[1], s=j)
+                    plt.text(comp.dia0[0], comp.dia0[1], s=j, c='g')
                     for bus in comp.buslist:
                         busx.append(self.buslist[bus].start[0])
                         busx.append(self.buslist[bus].end[0])
@@ -247,7 +243,17 @@ class Drawer:
 
                         
             
+
+        def draw_walls(self,vws):
+            for vw in vws:
+                p0 = vw.points[0]
+                p1 = vw.points[1]
+                plt.plot([p0[0],p1[0]], [p0[1],p1[1]], 'r',linewidth = 0.5, alpha= 1)
+
+        def show(self):
             plt.show()
+
+
 #def isoverlap(comp1,comp2):
 def isoverlap(comp1,comp2):
     if comp1[0][0]>=comp2[1][0] or comp1[1][0]<=comp2[0][0] or comp1[0][1]>=comp2[1][1] or comp1[1][1]<=comp2[0][1]:
@@ -399,6 +405,31 @@ def isadjacent(comppair)->int: #TODO consider other comp between comppair (over)
             return 4
         else:
             return dir
+        
+
+def to_boundary(comp,comp_list,pkg):
+
+    bdys = [0,1,2,3]
+    for component in comp_list:
+        if isoverlap([[comp.dia0[0],comp.dia1[1]],[comp.dia1[0],pkg.dia1[1]]], [component.dia0,component.dia1]):
+            if 0 in bdys:
+                bdys.remove(0)
+        if isoverlap([[comp.dia1[0],comp.dia0[1]],[pkg.dia1[0],comp.dia1[1]]], [component.dia0,component.dia1]):
+            if 1 in bdys:
+                bdys.remove(1)
+        if isoverlap([[comp.dia0[0],pkg.dia0[1]],[comp.dia1[0],comp.dia0[1]]], [component.dia0,component.dia1]):
+            if 2 in bdys:
+                bdys.remove(2)
+        if isoverlap([[pkg.dia0[0],comp.dia0[1]],[comp.dia0[0],comp.dia1[1]]], [component.dia0,component.dia1]):
+            if 3 in bdys:
+                bdys.remove(3)
+        return bdys
+
+
+
+
+        
+
 
 
 def localminimization(comppair, directions) -> VitualWall:   #can use comp_dirs instead of directions
@@ -503,7 +534,7 @@ def localminimization(comppair, directions) -> VitualWall:   #can use comp_dirs 
         edge1.sort(key= lambda x:x[2])  #may change edge unit from list to tuple 
         edge2.sort(key= lambda x:x[2])
         for net in edge1:
-            busid = net[0]
+            busid = net[0].BusID
             ids = [buslist[busid].comps[1].compID,buslist[busid].comps[0].compID]
             if comppair[1].compID not in ids:
                 if net[1]:
@@ -513,7 +544,7 @@ def localminimization(comppair, directions) -> VitualWall:   #can use comp_dirs 
                     if buslist[busid].end[0] < buslist[busid].start[0]:
                         nb0 +=1
         for net in edge2:
-            busid = net[0]
+            busid = net[0].BusID
             ids = [buslist[busid].comps[1].compID,buslist[busid].comps[0].compID]
             if comppair[0].compID not in ids:
                 if net[1]:
@@ -533,7 +564,7 @@ def localminimization(comppair, directions) -> VitualWall:   #can use comp_dirs 
         edge1.sort(key= lambda x:x[3])
         edge2.sort(key= lambda x:x[3])
         for net in edge1:
-            busid = net[0]
+            busid = net[0].BusID
             ids = [buslist[busid].comps[1].compID,buslist[busid].comps[0].compID]
             if comppair[1].compID not in ids:
                 if net[1]:
@@ -543,7 +574,7 @@ def localminimization(comppair, directions) -> VitualWall:   #can use comp_dirs 
                     if buslist[busid].end[1] < buslist[busid].start[1]:
                         nb0 +=1
         for net in edge2:
-            busid = net[0]
+            busid = net[0].BusID
             ids = [buslist[busid].comps[1].compID,buslist[busid].comps[0].compID]
             if comppair[0].compID not in ids:
                 if net[1]:
@@ -593,77 +624,77 @@ def findwall2(comppair,edge1,edge2,type):
                                 if not item1[0].comps[1].compID == comppair[1].compID:  #global
                                     if  item1[0].end[0] >= item1[0].start[0]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                                 else:  #locaal
                                     if  item1[0].end[0] >= edge2[b][2]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                             else:
                                 if not item1[0].comps[0].compID == comppair[1].compID:  #global
                                     if  item1[0].start[0] >= item1[0].end[0]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                                 else:  #locaal
                                     if  item1[0].start[0] >= edge2[b][2]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                         else:
                             if item1[1] == 0:
                                 if not item1[0].comps[1].compID == comppair[1].compID:  #global
                                     if  item1[0].end[0] < item1[0].start[0]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                                 else:  #locaal
                                     if  item1[0].end[0] < edge2[b][2]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                             else:
                                 if not item1[0].comps[0].compID == comppair[1].compID:  #global
                                     if  item1[0].start[0] < item1[0].end[0]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                                 else:  #locaal
                                     if  item1[0].start[0] < edge2[b][2]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                         if j < b :
                             if item2[1] == 0:
                                 if not item2[0].comps[1].compID == comppair[0].compID:  #global
                                     if  item2[0].end[0] >= item2[0].start[0]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
                                 else:  #locaal
                                     if  item2[0].end[0] >= edge2[a][2]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
                             else:
                                 if not item2[0].comps[0].compID == comppair[0].compID:  #global
                                     if  item2[0].start[0] >= item2[0].end[0]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
                                 else:  #locaal
                                     if  item2[0].start[0] >= edge2[a][2]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
                         else:
                             if item2[1] == 0:
                                 if not item2[0].comps[1].compID == comppair[0].compID:  #global
                                     if  item2[0].end[0] < item2[0].start[0]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
                                 else:  #locaal
                                     if  item2[0].end[0] < edge2[a][2]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
                             else:
                                 if not item2[0].comps[0].compID == comppair[0].compID:  #global
                                     if  item2[0].start[0] < item2[0].end[0]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
                                 else:  #locaal
                                     if  item2[0].start[0] < edge2[a][2]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
             elif type ==1:
                 crossbus = []
                 for i,item1 in enumerate(edge1):
@@ -673,88 +704,165 @@ def findwall2(comppair,edge1,edge2,type):
                                 if not item1[0].comps[1].compID == comppair[1].compID:  #global
                                     if  item1[0].end[1] >= item1[0].start[1]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                                 else:  #locaal
                                     if  item1[0].end[1] >= edge2[b][3]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                             else:
                                 if not item1[0].comps[0].compID == comppair[1].compID:  #global
                                     if  item1[0].start[1] >= item1[0].end[1]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                                 else:  #locaal
                                     if  item1[0].start[1] >= edge2[b][3]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                         else:
                             if item1[1] == 0:
                                 if not item1[0].comps[1].compID == comppair[1].compID:  #global
                                     if  item1[0].end[1] < item1[0].start[1]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                                 else:  #locaal
                                     if  item1[0].end[1] < edge2[b][3]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                             else:
                                 if not item1[0].comps[0].compID == comppair[1].compID:  #global
                                     if  item1[0].start[1] < item1[0].end[1]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                                 else:  #locaal
                                     if  item1[0].start[1] < edge2[b][3]:
                                         cross +=1
-                                        crossbus.append(item1[0].busID)
+                                        crossbus.append(item1[0].BusID)
                         if j < b :
                             if item2[1] == 0:
                                 if not item2[0].comps[1].compID == comppair[0].compID:  #global
                                     if  item2[0].end[1] >= item2[0].start[1]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
                                 else:  #locaal
                                     if  item2[0].end[1] >= edge2[a][3]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
                             else:
                                 if not item2[0].comps[0].compID == comppair[0].compID:  #global
                                     if  item2[0].start[1] >= item2[0].end[1]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
                                 else:  #locaal
                                     if  item2[0].start[1] >= edge2[a][3]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
                         else:
                             if item2[1] == 0:
                                 if not item2[0].comps[1].compID == comppair[0].compID:  #global
                                     if  item2[0].end[1] < item2[0].start[1]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
                                 else:  #locaal
                                     if  item2[0].end[1] < edge2[a][3]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
                             else:
                                 if not item2[0].comps[0].compID == comppair[0].compID:  #global
                                     if  item2[0].start[1] < item2[0].end[1]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
                                 else:  #locaal
                                     if  item2[0].start[1] < edge2[a][3]:
                                         cross +=1
-                                        crossbus.append(item2[0].busID)
+                                        crossbus.append(item2[0].BusID)
 
-        if cross<= min:
-            min = cross
-            w1 = a
-            w2 = b
-            crossbus_real = crossbus
+            if cross<= min:
+                min = cross
+                w1 = a
+                w2 = b
+                crossbus_real = crossbus
     point1 = [edge1[w1][2],edge1[w1][3]]
     point2 = [edge2[w2][2],edge2[w2][3]]
 
     wall = VitualWall(point1,point2,comppair[0],comppair[1],min,crossbus_real)  #to the left of two points
     return wall
+
+def find_bdwall(component, comp_dirs,comp_list,pkg):
+    dirs = to_boundary(component,comp_list,pkg)
+    bdwalls = []
+    w=0
+    i = component.compID
+    for dir in dirs:
+        if dir == 0 or dir == 2:
+            for a in range(len(comp_dirs[i][dir])):
+                cross = 0 
+                min = float('inf')
+                crossbus = []
+                for j,point in enumerate(comp_dirs[i][dir]):
+                    if j<a:
+                        if point[2] == 0:
+                            if  point[1][0] <= buslist[point[0]].end[0]:
+                                cross +=1
+                                crossbus.append(point[0])
+                        elif point[2] == 1:
+                            if  point[1][0] <= buslist[point[0]].start[0]:
+                                cross +=1
+                                crossbus.append(point[0])
+                    elif j>=a:
+                        if point[2] == 0:
+                            if  point[1][0] >= buslist[point[0]].end[0]:
+                                cross +=1
+                                crossbus.append(point[0])
+                        elif point[2] == 1:
+                            if  point[1][0] >= buslist[point[0]].start[0]:
+                                cross +=1
+                                crossbus.append(point[0])
+                if cross<= min:
+                    min = cross
+                    w = a
+                    crossbus_real = crossbus
+
+        elif dir == 1 or dir == 3:
+            for a in range(len(comp_dirs[i][dir])):
+                cross = 0 
+                min = float('inf')
+                crossbus = []
+                for j,point in enumerate(comp_dirs[i][dir]):
+                    if j<a:
+                        if point[2] == 0:
+                            if  point[1][1] <= buslist[point[0]].end[1]:
+                                cross +=1
+                                crossbus.append(point[0])
+                        elif point[2] == 1:
+                            if  point[1][1] <= buslist[point[0]].start[1]:
+                                cross +=1
+                                crossbus.append(point[0])
+                    elif j>=a:
+                        if point[2] == 0:
+                            if  point[1][1] >= buslist[point[0]].end[1]:
+                                cross +=1
+                                crossbus.append(point[0])
+                        elif point[2] == 1:
+                            if  point[1][1] >= buslist[point[0]].start[1]:
+                                cross +=1
+                                crossbus.append(point[0])
+                if cross<= min:
+                        min = cross
+                        w = a
+                        crossbus_real = crossbus
+        point1 = comp_dirs[i][dir][w]
+        if dir == 0:
+            point2 = [component.dia0[0]/2 +component.dia1[0]/2 ,pkg.dia1[1]]
+        if dir == 1:
+            point2 = [pkg.dia1[0],component.dia0[1]/2 +component.dia1[1]/2 ]
+        if dir == 2:
+            point2 = [component.dia0[0]/2 +component.dia1[0]/2 ,pkg.dia0[1]]
+        if dir == 3:
+            point2 = [pkg.dia0[0],component.dia0[1]/2 +component.dia1[1]/2 ]
+        bdwall = VitualWall(point1,point2,component,None,min,crossbus_real)  #to the left of two points
+        bdwalls.append(bdwall)
+    return bdwalls
+
         
 '''
 minimum spanning tree
@@ -1033,9 +1141,24 @@ if __name__ == '__main__':
 
 
 assigner = LayerAssigner(packagelist)
+comp_dirs = assigner.sort_by_dir()
+walls = []
 directions = assigner.EscapeOptimize()
+for i, pkg in enumerate(packagelist):
+    for comp in comps_in_pkg[i]:
+        bdwall = find_bdwall(comp,comp_dirs,comp_list,pkg)
+        walls.append(bdwall)
+
+for i, comp1 in enumerate(comp_list):
+    for j in range(i+1, len(comp_list)):
+        comp2 = comp_list[j]
+        wall = localminimization([comp1,comp2],directions)
+        walls.append(wall)
 pic = Drawer(packagelist,buslist)
+
 pic.draw(Bsize_x, Bsize_y,directions)
+pic.draw_walls(walls)
+pic.show()
 
 
 
