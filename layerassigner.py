@@ -1,5 +1,8 @@
 
 from ftplib import parse150
+from unicodedata import name
+
+from networkx import min_edge_cover
 import BusAllocator
 import random
 import matplotlib.pyplot as plt
@@ -132,18 +135,22 @@ class LayerAssigner:
                         directions.append([package.pkgID,bus.BusID,dir1,dir2])
         return directions
     
-    def sort_by_dir(self):
+    def sort_by_dir(self,comp_list):
         for package in self.PackageList:
             directions = []
             comps_dir = []
+            component = [{} for _ in range(len(comp_list))]
+            for i in range(len(comp_list)):
+                
+                component[i][0] = []
+                component[i][1] = []
+                component[i][2] = []
+                component[i][3] = []
             for comp in package.comps:
-                component = {}
-                component[0] = []
-                component[1] = []
-                component[2] = []
-                component[3] = []
                 for busindex in comp.buslist:
                     bus = buslist[busindex]
+                    comp1 = bus.comps[0].compID
+                    comp2 = bus.comps[1].compID
                     if (bus.comps[0] in package.comps) & (bus.comps[1] in package.comps):
                         dir1,dir2 = self.allocate_boundary(bus)
                     elif bus.comps[1] not in package.comps:
@@ -155,27 +162,34 @@ class LayerAssigner:
                     item = [package.pkgID,bus.BusID,dir1,dir2]
                     if item not in directions:
                         directions.append([package.pkgID,bus.BusID,dir1,dir2])
-                    if 0 in dir1 :
-                        component[0].append([bus.BusID,[bus.start[0],comp.dia1[1]],0])
-                    if 1 in dir1 :
-                        component[1].append([bus.BusID,[comp.dia1[0],bus.start[1]],0])
-                    if 2 in dir1 :
-                        component[2].append([bus.BusID,[bus.start[0],comp.dia0[1]],0])
-                    if 3 in dir1 :
-                        component[3].append([bus.BusID,[comp.dia0[0],bus.start[1]],0])
-                    if 0 in dir2 :
-                        component[0].append([bus.BusID,[bus.end[0],comp.dia1[1]],1])
-                    if 1 in dir2 :
-                        component[1].append([bus.BusID,[comp.dia1[0],bus.end[1]],1])
-                    if 2 in dir2 :
-                        component[2].append([bus.BusID,[bus.end[0],comp.dia0[1]],1])
-                    if 3 in dir2 :
-                        component[3].append([bus.BusID,[comp.dia0[0],bus.end[1]],1])
-                component[0].sort(key = lambda x:x[1][0])
-                component[1].sort(key = lambda x:x[1][1],reverse=True)
-                component[2].sort(key = lambda x:x[1][0],reverse=True)
-                component[3].sort(key = lambda x:x[1][1])
-                comps_dir.append(component)
+                    if comp.compID == comp1:
+
+                        if 0 in dir1 :
+                            component[comp1][0].append([bus.BusID,[bus.start[0],comp.dia1[1]],0])
+                        if 1 in dir1 :
+                            component[comp1][1].append([bus.BusID,[comp.dia1[0],bus.start[1]],0])
+                        if 2 in dir1 :
+                            component[comp1][2].append([bus.BusID,[bus.start[0],comp.dia0[1]],0])
+                        if 3 in dir1 :
+                            component[comp1][3].append([bus.BusID,[comp.dia0[0],bus.start[1]],0])
+                    if comp.compID == comp2:
+                    
+                        if 0 in dir2 :
+                            component[comp2][0].append([bus.BusID,[bus.end[0],comp.dia1[1]],1])
+                        if 1 in dir2 :
+                            component[comp2][1].append([bus.BusID,[comp.dia1[0],bus.end[1]],1])
+                        if 2 in dir2 :
+                            component[comp2][2].append([bus.BusID,[bus.end[0],comp.dia0[1]],1])
+                        if 3 in dir2 :
+                            component[comp2][3].append([bus.BusID,[comp.dia0[0],bus.end[1]],1])
+
+            for i in range(len(comp_list)):
+            
+                component[i][0].sort(key = lambda x:x[1][0])
+                component[i][1].sort(key = lambda x:x[1][1],reverse=True)
+                component[i][2].sort(key = lambda x:x[1][0],reverse=True)
+                component[i][3].sort(key = lambda x:x[1][1])
+            comps_dir = component
         return comps_dir
     
 class Drawer:
@@ -246,9 +260,21 @@ class Drawer:
 
         def draw_walls(self,vws):
             for vw in vws:
-                p0 = vw.points[0]
-                p1 = vw.points[1]
+                p0 = vw.point[0]
+                p1 = vw.point[1]
+                if vw.comps[0] is None:
+                    id1 = -1
+                else:
+                    id1 = vw.comps[0].compID
+                if vw.comps[1] is None:
+                    id2 = -1
+                else:
+                    id2 = vw.comps[1].compID
+                
                 plt.plot([p0[0],p1[0]], [p0[1],p1[1]], 'r',linewidth = 0.5, alpha= 1)
+                plt.text(p0[0],p0[1],s='{},{}'.format(id1,id2))
+                plt.text(p0[0]/2 +p1[0]/2,p0[1]/2 +p1[1]/2,s='{}'.format(vw.nb))
+                
 
         def show(self):
             plt.show()
@@ -347,7 +373,7 @@ def isadjacent(comppair)->int: #TODO consider other comp between comppair (over)
     comp2 = comppair[1]
     if (comp2.dia0[0]>=comp1.dia1[0]) and comp2.dia0[1] < comp1.dia1[1] and comp2.dia1[1] > comp1.dia0[1]:
         dir = 1
-    elif (comp2.dia0[1]<=comp1.dia1[1]) and comp2.dia0[0] < comp1.dia1[0] and comp2.dia1[1] > comp1.dia0[1]:
+    elif (comp2.dia1[1]<=comp1.dia0[1]) and comp2.dia0[0] < comp1.dia1[0] and comp2.dia1[0] > comp1.dia0[0]:
         dir = 2
     elif (comp2.dia1[0]<=comp1.dia0[0]) and comp2.dia0[1] < comp1.dia1[1] and comp2.dia1[1] > comp1.dia0[1]:
         dir = 3
@@ -355,12 +381,13 @@ def isadjacent(comppair)->int: #TODO consider other comp between comppair (over)
         dir = 0
     else:
         return 4 
+    flag = 0
     for comp in comp_list: 
         dias = [comp.dia0, comp.dia1]
         if dir == 0:
             if comp2.dia1[0] <= comp1.dia1[0]:
                 if comp2.dia0[0] <= comp1.dia0[0]:
-                    zone = [comp1.dia0,comp2.dia1]
+                    zone = [[comp1.dia0[0],comp1.dia1[1]],[comp2.dia1[0],comp2.dia0[1]]]
                 else:
                     zone = [[comp2.dia0[0],comp1.dia1[1]],[comp2.dia1[0],comp2.dia0[1]]]
             else:
@@ -371,14 +398,14 @@ def isadjacent(comppair)->int: #TODO consider other comp between comppair (over)
         elif dir == 1:
             if comp2.dia1[1] <= comp1.dia1[1]:
                 if comp2.dia0[1] <= comp1.dia0[1]:
-                    zone = [comp1.dia0,comp2.dia1]
+                    zone = [[comp1.dia1[0],comp1.dia0[1]],[comp2.dia0[0],comp2.dia1[1]]]
                 else:
                     zone = [[comp1.dia1[0],comp2.dia0[1]],[comp2.dia0[0],comp2.dia1[1]]]
             else:
                 if comp2.dia0[1] <= comp1.dia0[1]:
-                    zone = [[comp1.dia1[0],comp1.dia0[1]],[comp2.dia1[0],comp1.dia1[1]]]
+                    zone = [[comp1.dia1[0],comp1.dia0[1]],[comp2.dia0[0],comp1.dia1[1]]]
                 else:
-                    zone = [[comp1.dia1[0],comp2.dia0[1]],[comp2.dia1[0],comp1.dia1[1]]]
+                    zone = [[comp1.dia1[0],comp2.dia0[1]],[comp2.dia0[0],comp1.dia1[1]]]
         elif dir == 2:
             if comp2.dia1[0] <= comp1.dia1[0]:
                 if comp2.dia0[0] <= comp1.dia0[0]:
@@ -402,9 +429,11 @@ def isadjacent(comppair)->int: #TODO consider other comp between comppair (over)
                 else:
                     zone = [[comp2.dia1[0],comp1.dia0[1]],[comp1.dia0[0],comp1.dia1[1]]]
         if isoverlap(dias,zone):
-            return 4
-        else:
-            return dir
+            flag = 1
+    if flag:
+        return 4           
+    else:
+        return dir
         
 
 def to_boundary(comp,comp_list,pkg):
@@ -423,7 +452,7 @@ def to_boundary(comp,comp_list,pkg):
         if isoverlap([[pkg.dia0[0],comp.dia0[1]],[comp.dia0[0],comp.dia1[1]]], [component.dia0,component.dia1]):
             if 3 in bdys:
                 bdys.remove(3)
-        return bdys
+    return bdys
 
 
 
@@ -584,9 +613,16 @@ def localminimization(comppair, directions) -> VitualWall:   #can use comp_dirs 
                     if buslist[busid].end[1] < buslist[busid].start[1]:
                         nb0 +=1
     
-    vitualwall = findwall2(comppair,edge1, edge2,type)
+    vitualwall = findwall3(comppair,edge1, edge2,type)
     return vitualwall
+def localminimization2(comp_dirs, comp1, comp2):
+    dir = isadjacent([comp1,comp2])
+    if dir == 4:
+        return None
+    else:
+        wall =findwall3(comp_dirs,comp1,dir,comp2)
 
+    return wall
 
 def findwall(comppair,edge1,edge2,walls,nb0,type):  #walls must be null list.  type ==0 horizontal/ ==1 vertical
     
@@ -610,10 +646,53 @@ def findwall(comppair,edge1,edge2,walls,nb0,type):  #walls must be null list.  t
                     del e2[0]
     pass 
 
-def findwall2(comppair,edge1,edge2,type):
-    for a in range(len(edge1)): #a,b to the west or south of actual indexed point
-        for b in range(len(edge2)):
-            cross = 0 
+def findwall2(comppair,edge1,edge2,dir):
+    if dir == 0 or 2:
+        type = 0
+    elif dir == 1 or 3:
+        type = 1
+    
+    comp1 = comppair[0]
+    comp2 = comppair[1]
+
+    if edge1 is None:
+
+        flag1 = 1
+        if dir == 0:
+            point1 = [comp1.dia0[0]/2 +comp1.dia1[0]/2 ,comp1.dia1[1]]
+        if dir == 1:
+            point1 = [comp1.dia1[0],comp1.dia0[1]/2 +comp1.dia1[1]/2 ]
+        if dir == 2:
+            point1 = [comp1.dia0[0]/2 +comp1.dia1[0]/2 ,comp1.dia0[1]]
+        if dir == 3:
+            point1 = [comp1.dia0[0],comp1.dia0[1]/2 +comp1.dia1[1]/2 ]
+
+    else:
+        flag1 = 0
+
+        
+    if edge2 is None:
+
+        flag2 = 1
+        if dir == 0:
+            point2 = [comp2.dia0[0]/2 +comp2.dia1[0]/2 ,comp2.dia0[1]]
+        if dir == 1:
+            point2 = [comp2.dia0[0],comp2.dia0[1]/2 +comp2.dia1[1]/2 ]
+        if dir == 2:
+            point2 = [comp2.dia0[0]/2 +comp2.dia1[0]/2 ,comp2.dia1[1]]
+        if dir == 3:
+            point2 = [comp2.dia1[0],comp2.dia0[1]/2 +comp2.dia1[1]/2 ]
+    else:
+        flag2 = 0
+
+    
+
+
+    
+
+    for a in range(1 if flag1 else len(edge1)): #a,b to the west or south of actual indexed point
+        for b in range(1 if flag2 else len(edge2)):
+            cross = 0
             min = float('inf')
             if type == 0:
                 crossbus = []
@@ -664,7 +743,7 @@ def findwall2(comppair,edge1,edge2,type):
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
                                 else:  #locaal
-                                    if  item2[0].end[0] >= edge2[a][2]:
+                                    if  item2[0].end[0] >= edge1[a][2]:
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
                             else:
@@ -673,7 +752,7 @@ def findwall2(comppair,edge1,edge2,type):
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
                                 else:  #locaal
-                                    if  item2[0].start[0] >= edge2[a][2]:
+                                    if  item2[0].start[0] >= edge1[a][2]:
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
                         else:
@@ -683,7 +762,7 @@ def findwall2(comppair,edge1,edge2,type):
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
                                 else:  #locaal
-                                    if  item2[0].end[0] < edge2[a][2]:
+                                    if  item2[0].end[0] < edge1[a][2]:
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
                             else:
@@ -692,7 +771,7 @@ def findwall2(comppair,edge1,edge2,type):
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
                                 else:  #locaal
-                                    if  item2[0].start[0] < edge2[a][2]:
+                                    if  item2[0].start[0] < edge1[a][2]:
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
             elif type ==1:
@@ -744,7 +823,7 @@ def findwall2(comppair,edge1,edge2,type):
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
                                 else:  #locaal
-                                    if  item2[0].end[1] >= edge2[a][3]:
+                                    if  item2[0].end[1] >= edge1[a][3]:
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
                             else:
@@ -753,7 +832,7 @@ def findwall2(comppair,edge1,edge2,type):
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
                                 else:  #locaal
-                                    if  item2[0].start[1] >= edge2[a][3]:
+                                    if  item2[0].start[1] >= edge1[a][3]:
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
                         else:
@@ -763,7 +842,7 @@ def findwall2(comppair,edge1,edge2,type):
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
                                 else:  #locaal
-                                    if  item2[0].end[1] < edge2[a][3]:
+                                    if  item2[0].end[1] < edge1[a][3]:
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
                             else:
@@ -772,34 +851,140 @@ def findwall2(comppair,edge1,edge2,type):
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
                                 else:  #locaal
-                                    if  item2[0].start[1] < edge2[a][3]:
+                                    if  item2[0].start[1] < edge1[a][3]:
                                         cross +=1
                                         crossbus.append(item2[0].BusID)
-
             if cross<= min:
+                global w1,w2
+                point1,point2
                 min = cross
                 w1 = a
                 w2 = b
                 crossbus_real = crossbus
-    point1 = [edge1[w1][2],edge1[w1][3]]
-    point2 = [edge2[w2][2],edge2[w2][3]]
-
+            point1 = [edge1[w1][2],edge1[w1][3]]
+            point2 = [edge2[w2][2],edge2[w2][3]]
+                
     wall = VitualWall(point1,point2,comppair[0],comppair[1],min,crossbus_real)  #to the left of two points
     return wall
 
-def find_bdwall(component, comp_dirs,comp_list,pkg):
-    dirs = to_boundary(component,comp_list,pkg)
-    bdwalls = []
-    w=0
+
+def findwall3(comp_dirs, comp1:Component, dir:int, comp2:Component):
+    edge1 = comp_dirs[comp1.compID][dir]
+    dir2 = edge_switch(dir,2)
+    edge2 = comp_dirs[comp2.compID][dir2]
+    if (len(edge1) == 0) and (len(edge2) == 0):
+       if dir == 0:
+           point1 = [comp1.dia0[0]/2 +comp1.dia1[0]/2 ,comp1.dia1[1]]
+           point2 = [comp2.dia0[0]/2 +comp2.dia1[0]/2 ,comp2.dia0[1]]
+           wall = VitualWall(point1,point2,comp1,comp2,0,None)
+       if dir == 1:
+           point1 = [comp1.dia1[0],comp1.dia0[1]/2 +comp1.dia1[1]/2 ]
+           point2 = [comp2.dia0[0],comp2.dia0[1]/2 +comp2.dia1[1]/2 ]
+           wall = VitualWall(point1,point2,comp1,comp2,0,None)
+       if dir == 2:
+           point1 = [comp1.dia0[0]/2 +comp1.dia1[0]/2 ,comp1.dia0[1]]
+           point2 = [comp2.dia0[0]/2 +comp2.dia1[0]/2 ,comp2.dia1[1]]
+           wall = VitualWall(point1,point2,comp1,comp2,0,None)
+       if dir == 3:
+           point1 = [comp1.dia0[0],comp1.dia0[1]/2 +comp1.dia1[1]/2 ]
+           point2 = [comp2.dia1[0],comp2.dia0[1]/2 +comp2.dia1[1]/2 ]
+           wall = VitualWall(point1,point2,comp1,comp2,0,None)
+        
+        
+
+    if (len(edge1) == 0) and (len(edge2) != 0):
+        wall = SingleEdge(comp_dirs,comp2,dir2,comp1)
+    if (len(edge1) != 0) and (len(edge2) == 0):
+        wall = SingleEdge(comp_dirs,comp1,dir,comp2)
+    if (len(edge1) != 0) and (len(edge2) != 0):
+        wall = DoubleEdge(comp_dirs,comp1,dir,comp2)
+    return wall
+
+        
+
+def SingleEdge(comp_dirs, component:Component, dir, component2:Component): #component edge of dir must not be null
     i = component.compID
-    for dir in dirs:
-        if dir == 0 or dir == 2:
-            for a in range(len(comp_dirs[i][dir])):
+    if dir == 0 or dir == 2:
+        for a in range(len(comp_dirs[i][dir])):
+            cross = 0 
+            min = float('inf')
+            crossbus = []
+            for j,point in enumerate(comp_dirs[i][dir]):
+                if j<a:
+                    if point[2] == 0:
+                        if  point[1][0] <= buslist[point[0]].end[0]:
+                            cross +=1
+                            crossbus.append(point[0])
+                    elif point[2] == 1:
+                        if  point[1][0] <= buslist[point[0]].start[0]:
+                            cross +=1
+                            crossbus.append(point[0])
+                elif j>=a:
+                    if point[2] == 0:
+                        if  point[1][0] >= buslist[point[0]].end[0]:
+                            cross +=1
+                            crossbus.append(point[0])
+                    elif point[2] == 1:
+                        if  point[1][0] >= buslist[point[0]].start[0]:
+                            cross +=1
+                            crossbus.append(point[0])
+            if cross<= min:
+                min = cross
+                w = a
+                crossbus_real = crossbus
+    elif dir == 1 or dir == 3:
+        for a in range(len(comp_dirs[i][dir])):
+            cross = 0 
+            min = float('inf')
+            crossbus = []
+            for j,point in enumerate(comp_dirs[i][dir]):
+                if j<a:
+                    if point[2] == 0:
+                        if  point[1][1] <= buslist[point[0]].end[1]:
+                            cross +=1
+                            crossbus.append(point[0])
+                    elif point[2] == 1:
+                        if  point[1][1] <= buslist[point[0]].start[1]:
+                            cross +=1
+                            crossbus.append(point[0])
+                elif j>=a:
+                    if point[2] == 0:
+                        if  point[1][1] >= buslist[point[0]].end[1]:
+                            cross +=1
+                            crossbus.append(point[0])
+                    elif point[2] == 1:
+                        if  point[1][1] >= buslist[point[0]].start[1]:
+                            cross +=1
+                            crossbus.append(point[0])
+            if cross<= min:
+                    min = cross
+                    w = a
+                    crossbus_real = crossbus
+    point1 = comp_dirs[i][dir][w][1]
+    if dir == 0:
+        point2 = [component2.dia0[0]/2 +component2.dia1[0]/2 ,component2.dia0[1]]
+    if dir == 1:
+        point2 = [component2.dia0[0],component2.dia0[1]/2 +component2.dia1[1]/2 ]
+    if dir == 2:
+        point2 = [component2.dia0[0]/2 +component2.dia1[0]/2 ,component2.dia1[1]]
+    if dir == 3:
+        point2 = [component2.dia1[0],component2.dia0[1]/2 +component2.dia1[1]/2 ]
+    
+    wall = VitualWall(point1,point2,component,component2,min,crossbus_real)
+    return wall
+
+def DoubleEdge(comp_dirs, component1:Component, dir, component2:Component): #edge must not be null
+    i = component1.compID
+    j = component2.compID
+    dir2 = edge_switch(dir,2)
+    if dir == 0 or dir == 2:
+        for a in range(len(comp_dirs[i][dir])):
+            for b in range(len(comp_dirs[j][dir2])):
                 cross = 0 
                 min = float('inf')
                 crossbus = []
-                for j,point in enumerate(comp_dirs[i][dir]):
-                    if j<a:
+                for m,point in enumerate(comp_dirs[i][dir]):
+                    if m<a:
                         if point[2] == 0:
                             if  point[1][0] <= buslist[point[0]].end[0]:
                                 cross +=1
@@ -808,7 +993,26 @@ def find_bdwall(component, comp_dirs,comp_list,pkg):
                             if  point[1][0] <= buslist[point[0]].start[0]:
                                 cross +=1
                                 crossbus.append(point[0])
-                    elif j>=a:
+                    elif m>=a:
+                        if point[2] == 0:
+                            if  point[1][0] >= buslist[point[0]].end[0]:
+                                cross +=1
+                                crossbus.append(point[0])
+                        elif point[2] == 1:
+                            if  point[1][0] >= buslist[point[0]].start[0]:
+                                cross +=1
+                                crossbus.append(point[0])
+                for n, point in enumerate(comp_dirs[j][dir2]):
+                    if n<b:
+                        if point[2] == 0:
+                            if  point[1][0] <= buslist[point[0]].end[0]:
+                                cross +=1
+                                crossbus.append(point[0])
+                        elif point[2] == 1:
+                            if  point[1][0] <= buslist[point[0]].start[0]:
+                                cross +=1
+                                crossbus.append(point[0])
+                    elif n>=b:
                         if point[2] == 0:
                             if  point[1][0] >= buslist[point[0]].end[0]:
                                 cross +=1
@@ -819,16 +1023,17 @@ def find_bdwall(component, comp_dirs,comp_list,pkg):
                                 crossbus.append(point[0])
                 if cross<= min:
                     min = cross
-                    w = a
+                    w1 = a
+                    w2 = b
                     crossbus_real = crossbus
-
-        elif dir == 1 or dir == 3:
-            for a in range(len(comp_dirs[i][dir])):
+    elif dir == 1 or dir == 3:
+        for a in range(len(comp_dirs[i][dir])):
+            for b in range(len(comp_dirs[j][dir2])):
                 cross = 0 
                 min = float('inf')
                 crossbus = []
-                for j,point in enumerate(comp_dirs[i][dir]):
-                    if j<a:
+                for m,point in enumerate(comp_dirs[i][dir]):
+                    if m<a:
                         if point[2] == 0:
                             if  point[1][1] <= buslist[point[0]].end[1]:
                                 cross +=1
@@ -837,7 +1042,26 @@ def find_bdwall(component, comp_dirs,comp_list,pkg):
                             if  point[1][1] <= buslist[point[0]].start[1]:
                                 cross +=1
                                 crossbus.append(point[0])
-                    elif j>=a:
+                    elif m>=a:
+                        if point[2] == 0:
+                            if  point[1][1] >= buslist[point[0]].end[1]:
+                                cross +=1
+                                crossbus.append(point[0])
+                        elif point[2] == 1:
+                            if  point[1][1] >= buslist[point[0]].start[1]:
+                                cross +=1
+                                crossbus.append(point[0])
+                for n, point in enumerate(comp_dirs[j][dir2]):
+                    if n<b:
+                        if point[2] == 0:
+                            if  point[1][1] <= buslist[point[0]].end[1]:
+                                cross +=1
+                                crossbus.append(point[0])
+                        elif point[2] == 1:
+                            if  point[1][1] <= buslist[point[0]].start[1]:
+                                cross +=1
+                                crossbus.append(point[0])
+                    elif n>=b:
                         if point[2] == 0:
                             if  point[1][1] >= buslist[point[0]].end[1]:
                                 cross +=1
@@ -847,10 +1071,94 @@ def find_bdwall(component, comp_dirs,comp_list,pkg):
                                 cross +=1
                                 crossbus.append(point[0])
                 if cross<= min:
+                    min = cross
+                    w1 = a
+                    w2 = b
+                    crossbus_real = crossbus
+    point1 = comp_dirs[i][dir][w1][1]
+    point2 = comp_dirs[j][dir2][w2][1]
+    wall = VitualWall(point1,point2,component1,component2,min,crossbus_real)
+    return wall
+
+def find_bdwall(component, comp_dirs,comp_list,pkg):
+    dirs = to_boundary(component,comp_list,pkg)
+    bdwalls = []
+    w=0
+    i = component.compID
+    for dir in dirs:
+        if len(comp_dirs[i][dir]) == 0:
+            w = 0
+            cross = 0
+            min = 0
+            crossbus_real = []
+            if dir == 0:
+                point1 = [component.dia0[0]/2 +component.dia1[0]/2 ,component.dia1[1]]
+            if dir == 1:
+                point1 = [component.dia1[0],component.dia0[1]/2 +component.dia1[1]/2 ]
+            if dir == 2:
+                point1 = [component.dia0[0]/2 +component.dia1[0]/2 ,component.dia0[1]]
+            if dir == 3:
+                point1 = [component.dia0[0],component.dia0[1]/2 +component.dia1[1]/2 ]
+        else:
+            if dir == 0 or dir == 2:
+                for a in range(len(comp_dirs[i][dir])):
+                    cross = 0 
+                    min = float('inf')
+                    crossbus = []
+                    for j,point in enumerate(comp_dirs[i][dir]):
+                        if j<a:
+                            if point[2] == 0:
+                                if  point[1][0] <= buslist[point[0]].end[0]:
+                                    cross +=1
+                                    crossbus.append(point[0])
+                            elif point[2] == 1:
+                                if  point[1][0] <= buslist[point[0]].start[0]:
+                                    cross +=1
+                                    crossbus.append(point[0])
+                        elif j>=a:
+                            if point[2] == 0:
+                                if  point[1][0] >= buslist[point[0]].end[0]:
+                                    cross +=1
+                                    crossbus.append(point[0])
+                            elif point[2] == 1:
+                                if  point[1][0] >= buslist[point[0]].start[0]:
+                                    cross +=1
+                                    crossbus.append(point[0])
+                    if cross<= min:
                         min = cross
                         w = a
                         crossbus_real = crossbus
-        point1 = comp_dirs[i][dir][w]
+
+            if dir == 1 or dir == 3:
+                for a in range(len(comp_dirs[i][dir])):
+                    cross = 0 
+                    min = float('inf')
+                    crossbus = []
+                    for j,point in enumerate(comp_dirs[i][dir]):
+                        if j<a:
+                            if point[2] == 0:
+                                if  point[1][1] <= buslist[point[0]].end[1]:
+                                    cross +=1
+                                    crossbus.append(point[0])
+                            elif point[2] == 1:
+                                if  point[1][1] <= buslist[point[0]].start[1]:
+                                    cross +=1
+                                    crossbus.append(point[0])
+                        elif j>=a:
+                            if point[2] == 0:
+                                if  point[1][1] >= buslist[point[0]].end[1]:
+                                    cross +=1
+                                    crossbus.append(point[0])
+                            elif point[2] == 1:
+                                if  point[1][1] >= buslist[point[0]].start[1]:
+                                    cross +=1
+                                    crossbus.append(point[0])
+                    if cross<= min:
+                            min = cross
+                            w = a
+                            crossbus_real = crossbus
+
+            point1 = comp_dirs[i][dir][w][1]
         if dir == 0:
             point2 = [component.dia0[0]/2 +component.dia1[0]/2 ,pkg.dia1[1]]
         if dir == 1:
@@ -931,7 +1239,8 @@ def constructcircle(complist,directions, comps_dir):
     for i in range(len(complist)):
         for j in range(i+1,len(complist)):
             comppair = [complist[i], complist[j]]
-            vw = localminimization(comppair, directions)
+#            vw = localminimization(comppair, directions)
+            vw = localminimization2(comps_dir,complist[i],complist[j])
             if vw is not None:
                 vw_list.append([vw, vw.nb])
 
@@ -1141,35 +1450,29 @@ if __name__ == '__main__':
 
 
 assigner = LayerAssigner(packagelist)
-comp_dirs = assigner.sort_by_dir()
-walls = []
 directions = assigner.EscapeOptimize()
+comp_dirs = assigner.sort_by_dir(comp_list)
+walls = []
+
 for i, pkg in enumerate(packagelist):
     for comp in comps_in_pkg[i]:
         bdwall = find_bdwall(comp,comp_dirs,comp_list,pkg)
-        walls.append(bdwall)
+        walls.extend(bdwall)
 
+relatedirs = []
 for i, comp1 in enumerate(comp_list):
     for j in range(i+1, len(comp_list)):
         comp2 = comp_list[j]
-        wall = localminimization([comp1,comp2],directions)
-        walls.append(wall)
+        if isadjacent([comp1,comp2]) != 4:
+#        wall = localminimization([comp1,comp2],directions)
+            relatedirs.append([i,j,isadjacent([comp1,comp2])])
+            wall = localminimization2(comp_dirs,comp1,comp2)
+
+            if wall is not None:
+                walls.extend([wall])
 pic = Drawer(packagelist,buslist)
 
 pic.draw(Bsize_x, Bsize_y,directions)
 pic.draw_walls(walls)
 pic.show()
-
-
-
-
-        
-        
-
-
-
-    
-
-
-
-
+print(0)

@@ -297,9 +297,9 @@ class BusAllocator:
 
 def allocator_arguments():
     parser = argparse.ArgumentParser('BusAllocator')
-    parser.add_argument('--kicad_pcb', type=str, dest='kicad_pcb', default="bench1/bm1.unrouted.kicad_pcb")
-    parser.add_argument('--kicad_pro', type=str, dest='kicad_pro', default="bench1/bm1.unrouted.kicad_pro")
-    parser.add_argument('--save_file', type=str, dest='save_file', default="bench1/bm1.routed.kicad_pcb")
+    parser.add_argument('--kicad_pcb', type=str, dest='kicad_pcb', default="bench2/bm2.unrouted.kicad_pcb")
+    parser.add_argument('--kicad_pro', type=str, dest='kicad_pro', default="bench2/bm2.unrouted.kicad_pro")
+    parser.add_argument('--save_file', type=str, dest='save_file', default="bench2/bm2.routed.kicad_pcb")
     return parser.parse_args()
 
 class Drawer():
@@ -388,7 +388,7 @@ class Drawer():
 
 
 
-        plt.savefig('figs/new/bench1.png')
+        plt.savefig('figs/new/bench2.png')
         plt.show()
 
 
