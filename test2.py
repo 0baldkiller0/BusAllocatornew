@@ -19,7 +19,7 @@ if 1 in a:
 print(a[-1])
 
 a = []
-print(len(a) is 0)
+print(len(a) == 0)
 
 
 def add(a):
@@ -38,4 +38,12 @@ print(c)
 
 d = [[1,2],[3,4],[5,6]]
 e = d[0][:]
+f = copy.deepcopy(d)
+f.extend([[1,1]])
 print(e)
+print(f)
+a= [[1,2],[2,'b'],[3,4]]
+b= [[1,2],[2,'b'],[3,3]]
+print(a[0:1] == b[0:1])
+del a[0][0]
+print(a[-1])

@@ -1,4 +1,5 @@
 
+from enum import EnumType
 import BusAllocator
 import random
 import matplotlib.pyplot as plt
@@ -1852,7 +1853,7 @@ class Section:
 
 
 
-def split(criticalpoints,comps_dir):
+def split(criticalpoints,comps_dir): #split buses by criticalpoints -> segs:[[bus,bus_pos,dir1,i], ... ]
         segments = [[{} for _ in range(4)] for _ in range(len(comps_dir))]        
         for i in range(len(comps_dir)):    
             points = criticalpoints[i]
@@ -1924,6 +1925,134 @@ def init_layer(circle,comp_list):
         for bus1 in circle2:
             pass
 
+def process_circle(circle,comp_list,buslist): #add next and its direcion
+    circle2 = copy.deepcopy(circle)
+    for i in range(len(buslist)):
+        temp = []
+        for j,item in enumerate(circle2):
+            if item[0] == i:
+                temp.append([j,item])
+#        if len(temp) == 2:
+#            if 2*(temp[1][0] - temp[0][0]) <= len (circle):
+#                circle2[temp[0][0]].extend([1,temp[1][0]]) #(its direcion,next)
+#                circle2[temp[1][0]].extend([0,temp[0][0]])
+#            else:
+#                circle2[temp[0][0]].extend([0,temp[1][0]])
+#                circle2[temp[1][0]].extend([1,temp[0][0]])
+        lenth = len(temp)
+        for m in range(lenth):
+            for n in range(m+1,lenth):
+                if len(circle2[temp[m][0]]) == 4:
+                    circle2[temp[m][0]].append([])
+                if len(circle2[temp[n][0]]) == 4:
+                    circle2[temp[n][0]].append([])
+                if circle2[temp[m][0]][3] == circle2[temp[n][0]][3]:
+                    if 2*(temp[n][0] - temp[m][0]) <= len (circle):
+                        circle2[temp[m][0]][4].append([1,temp[n][0]])# 1 -> forward, 0 -> backward
+                        circle2[temp[n][0]][4].append([0,temp[m][0]])
+                    else:
+                        circle2[temp[m][0]][4].append([0,temp[n][0]])
+                        circle2[temp[n][0]][4].append([1,temp[m][0]])
+        for m in range(lenth):
+            for n in range(m+1,lenth):                
+                dir = isadjacent(comp_list[circle2[temp[m][0]][3]],comp_list[circle2[temp[n][0]][3]])
+                if (len(temp) == 4) and (dir != 4):
+                    for next in circle2[temp[m][0]][4]:
+                        if ((circle2[next[1]][2] == edge_switch(dir,1)) or (circle2[next[1]][2] == edge_switch(dir,3))) and ((circle2[temp[m][0]][2] == edge_switch(dir,1)) or (circle2[temp[m][0]][2] == edge_switch(dir,3))):
+                            circle2[temp[m][0]][4].remove(next)
+                    for next in circle2[temp[n][0]][4]:
+                        if ((circle2[next[1]][2] == edge_switch(dir,1)) or (circle2[next[1]][2] == edge_switch(dir,3))) and ((circle2[temp[n][0]][2] == edge_switch(dir,1)) or (circle2[temp[n][0]][2] == edge_switch(dir,3))):
+                            circle2[temp[n][0]][4].remove(next)
+    for i,item in enumerate(circle2):
+        item.append(i)
+    
+
+    return circle2
+
+
+def cross_state(a1,a2,b1,b2):#format: [bus,pos,dir,comp,next([0(1),nextindex])]
+    if b2[4][1] > b1[4][1]:
+        if a1[4][1] <= b1[4][1]:
+            if a2[4][1] >= b2[4][1]:
+                return 0
+            else:
+                return 1
+        else:
+            if a2[4][1] <= b2[4][1]:
+                return 0
+            else:
+                return 1
+    else:
+        if a1[4][1] <= b2[4][1]:
+            if a2[4][1] >= b1[4][1]:
+                return 0
+            else:
+                return 1
+        else:
+            if a2[4][1] <= b1[4][1]:
+                return 0
+            else:
+                return 1        
+
+def find_in_circle(item,circle):
+    for i,point in enumerate(circle):
+        if item == point[0:3]:
+            return i
+
+def assign_layer(processed_circle):
+    layers = []
+    circle = copy.deepcopy(processed_circle)
+    while(len(circle) != 0):
+
+        temp = [circle[0]]
+        next = circle[0][4][0][1] #须用链表，index会变, 多向链表？
+        dir = circle[0][4][0][0]
+        del circle[0][4][0]
+        if dir == 1:
+            flag = 1
+            while(flag and (processed_circle[next][5] > temp[-1][5])):
+                index = find_in_circle(processed_circle[next][0:3],circle)
+                temp.append(circle[index])
+                if circle[index][4][0][0] == 1:
+                    next = circle[index][4][0][1]
+                    del circle[index][4][0]
+                else:
+                    flag = 0
+                    for i in range(index + 1, len(circle)):
+                        if circle[i][4][0][0] == 1:
+                            next = circle[i][4][0][1]
+                            del circle[index][4][0]
+                            flag = 1
+                            break
+                
+                if  circle[index][4] == []:
+                    del circle[index]
+        elif dir == 0:
+            flag = 1
+            while(flag and (processed_circle[next][5] > temp[-1][5])):
+                index = find_in_circle(processed_circle[next][0:3],circle)
+                temp.append(circle[index])
+                if circle[index][4][0][0] == 0:
+                    next = circle[index][4][0][1]
+                    del circle[index][4][0]
+                else:
+                    flag = 0
+                    for i in range(1, index):
+                        if circle[index - i][4][0][0] == 0:
+                            next = circle[index - i][4][0][1]
+                            del circle[index][4][0]
+                            flag = 1
+                            break
+                
+                if  circle[index][4] == []:
+                    del circle[index]
+
+
+
+
+    
+
+        
     
 if __name__ == '__main__':
     Bsize_x = 1000
