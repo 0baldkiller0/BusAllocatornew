@@ -1079,111 +1079,11 @@ def DoubleEdge(comp_dirs, component1:Component, dir, component2:Component): #edg
                 cross = 0 
                 crossbus = []
                 for m,point in enumerate(comp_dirs[i][dir]):
-                    #if m<a:
-                    #    if j not in [buslist[point[0]].comps[0].compID, buslist[point[0]].comps[1].compID]:
-                    #        if point[2] == 0:
-                    #            if  point[1][0] <= buslist[point[0]].end[0]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #        elif point[2] == 1:
-                    #            if  point[1][0] <= buslist[point[0]].start[0]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #    else:
-                    #        if point[0] not in dirbus[j][dir2]:
-                    #            if point[2] == 0:
-                    #                if  point[1][0] <= buslist[point[0]].end[0]:
-                    #                    cross +=1
-                    #                    crossbus.append(point[0])
-                    #            elif point[2] == 1:
-                    #                if  point[1][0] <= buslist[point[0]].start[0]:
-                    #                    cross +=1
-                    #                    crossbus.append(point[0])
-                    #        else:
-                    #            if dirbus[j][dir2].index(point[0]) >= b:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-#
-                    #            
-                    #elif m>=a:
-                    #    if j not in [buslist[point[0]].comps[0].compID, buslist[point[0]].comps[1].compID]:
-                    #        if point[2] == 0:
-                    #            if  point[1][0] >= buslist[point[0]].end[0]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #        elif point[2] == 1:
-                    #            if  point[1][0] >= buslist[point[0]].start[0]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #    else:
-                    #        if point[0] not in dirbus[j][dir2]:
-                    #            if point[2] == 0:
-                    #                if  point[1][0] >= buslist[point[0]].end[0]:
-                    #                    cross +=1
-                    #                    crossbus.append(point[0])
-                    #            elif point[2] == 1:
-                    #                if  point[1][0] >= buslist[point[0]].start[0]:
-                    #                    cross +=1
-                    #                    crossbus.append(point[0])
-                    #        else:
-                    #            if dirbus[j][dir2].index(point[0]) < b:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
                     if crosswall(m,a,b,dir,i,j,point,dirbus):
                         cross +=1
                         crossbus.append(point[0])
 
                 for n, point2 in enumerate(comp_dirs[j][dir2]):
-                    #if n<b:
-                    #    if i not in [buslist[point[0]].comps[0].compID, buslist[point[0]].comps[1].compID]:
-                    #        if point[2] == 0:
-                    #            if  point[1][0] <= buslist[point[0]].end[0]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #        elif point[2] == 1:
-                    #            if  point[1][0] <= buslist[point[0]].start[0]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #    else:
-                    #        if point[0] not in dirbus[i][dir]:
-                    #            if point[2] == 0:
-                    #                if  point[1][0] <= buslist[point[0]].end[0]:
-                    #                        cross +=1
-                    #                        crossbus.append(point[0])
-                    #            elif point[2] == 1:
-                    #                if  point[1][0] <= buslist[point[0]].start[0]:
-                    #                        cross +=1
-                    #                        crossbus.append(point[0])
-                    #        else:
-                    #            if dirbus[i][dir].index(point[0]) >= a:
-                    #                if point[0] not in crossbus:
-                    #                    cross +=1
-                    #                    crossbus.append(point[0])
-                    #elif n>=b:
-                    #    if i not in [buslist[point[0]].comps[0].compID, buslist[point[0]].comps[1].compID]:
-                    #        if point[2] == 0:
-                    #            if  point[1][0] >= buslist[point[0]].end[0]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #        elif point[2] == 1:
-                    #            if  point[1][0] >= buslist[point[0]].start[0]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #    else:
-                    #        if point[0] not in dirbus[i][dir]:
-                    #            if point[2] == 0:
-                    #                if  point[1][0] >= buslist[point[0]].end[0]:
-                    #                        cross +=1
-                    #                        crossbus.append(point[0])
-                    #            elif point[2] == 1:
-                    #                if  point[1][0] >= buslist[point[0]].start[0]:
-                    #                        cross +=1
-                    #                        crossbus.append(point[0])
-                    #        else:
-                    #            if dirbus[i][dir].index(point[0]) < a:
-                    #                if point[0] not in crossbus:
-                    #                    cross +=1
-                    #                    crossbus.append(point[0])
                     if crosswall(n,b,a,dir2,j,i,point2,dirbus):
                         if point[0] not in crossbus:
                             cross +=1
@@ -1199,151 +1099,14 @@ def DoubleEdge(comp_dirs, component1:Component, dir, component2:Component): #edg
                 cross = 0
                 crossbus = []
                 for m,point in enumerate(comp_dirs[i][dir]):
-                    #if m<a:
-                    #    if j not in [buslist[point[0]].comps[0].compID, buslist[point[0]].comps[1].compID]:
-                    #        if point[2] == 0:
-                    #            if  point[1][1] <= buslist[point[0]].end[1]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #        elif point[2] == 1:
-                    #            if  point[1][1] <= buslist[point[0]].start[1]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #    else:
-                    #        if point[0] not in dirbus[j][dir2]:
-                    #            if point[2] == 0:
-                    #                if  point[1][1] <= buslist[point[0]].end[1]:
-                    #                    cross +=1
-                    #                    crossbus.append(point[0])
-                    #            elif point[2] == 1:
-                    #                if  point[1][1] <= buslist[point[0]].start[1]:
-                    #                    cross +=1
-                    #                    crossbus.append(point[0])
-                    #        else:
-                    #            if dirbus[j][dir2].index(point[0]) >= b:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-#
-                    #            
-                    #elif m>=a:
-                    #    if j not in [buslist[point[0]].comps[0].compID, buslist[point[0]].comps[1].compID]:
-                    #        if point[2] == 0:
-                    #            if  point[1][1] >= buslist[point[0]].end[1]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #        elif point[2] == 1:
-                    #            if  point[1][1] >= buslist[point[0]].start[1]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #    else:
-                    #        if point[0] not in dirbus[j][dir2]:
-                    #            if point[2] == 0:
-                    #                if  point[1][1] >= buslist[point[0]].end[1]:
-                    #                    cross +=1
-                    #                    crossbus.append(point[0])
-                    #            elif point[2] == 1:
-                    #                if  point[1][1] >= buslist[point[0]].start[1]:
-                    #                    cross +=1
-                    #                    crossbus.append(point[0])
-                    #        else:
-                    #            if dirbus[j][dir2].index(point[0]) < b:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
                     if crosswall(m,a,b,dir,i,j,point,dirbus):
                         cross +=1
                         crossbus.append(point[0])
                 for n, point in enumerate(comp_dirs[j][dir2]):
-                    #if n<b:
-                    #    if i not in [buslist[point[0]].comps[0].compID, buslist[point[0]].comps[1].compID]:
-                    #        if point[2] == 0:
-                    #            if  point[1][1] <= buslist[point[0]].end[1]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #        elif point[2] == 1:
-                    #            if  point[1][1] <= buslist[point[0]].start[1]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #    else:
-                    #        if point[0] not in dirbus[i][dir]:
-                    #            if point[2] == 0:
-                    #                if  point[1][1] <= buslist[point[0]].end[1]:
-                    #                        cross +=1
-                    #                        crossbus.append(point[0])
-                    #            elif point[2] == 1:
-                    #                if  point[1][1] <= buslist[point[0]].start[1]:
-                    #                        cross +=1
-                    #                        crossbus.append(point[0])
-                    #        else:
-                    #            if dirbus[i][dir].index(point[0]) >= a:
-                    #                if point[0] not in crossbus:
-                    #                    cross +=1
-                    #                    crossbus.append(point[0])
-                    #elif n>=b:
-                    #    if i not in [buslist[point[0]].comps[0].compID, buslist[point[0]].comps[1].compID]:
-                    #        if point[2] == 0:
-                    #            if  point[1][1] >= buslist[point[0]].end[1]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #        elif point[2] == 1:
-                    #            if  point[1][1] >= buslist[point[0]].start[1]:
-                    #                cross +=1
-                    #                crossbus.append(point[0])
-                    #    else:
-                    #        if point[0] not in dirbus[i][dir]:
-                    #            if point[2] == 0:
-                    #                if  point[1][1] >= buslist[point[0]].end[1]:
-                    #                        cross +=1
-                    #                        crossbus.append(point[0])
-                    #            elif point[2] == 1:
-                    #                if  point[1][1] >= buslist[point[0]].start[1]:
-                    #                        cross +=1
-                    #                        crossbus.append(point[0])
-                    #        else:
-                    #            if dirbus[i][dir].index(point[0]) < a:
-                    #                if point[0] not in crossbus:
-                    #                    cross +=1
-                    #                    crossbus.append(point[0])
                     if crosswall(n,b,a,dir2,j,i,point,dirbus):
                         if point[0] not in crossbus:
                             cross +=1
                             crossbus.append(point[0])    
-
-#                        if point[2] == 0:
-#                            if  point[1][1] <= buslist[point[0]].end[1]:
-#                                cross +=1
-#                                crossbus.append(point[0])
-#                        elif point[2] == 1:
-#                            if  point[1][1] <= buslist[point[0]].start[1]:
-#                                cross +=1
-#                                crossbus.append(point[0])
-#                    elif m>=a:
-#                        if point[2] == 0:
-#                            if  point[1][1] >= buslist[point[0]].end[1]:
-#                                cross +=1
-#                                crossbus.append(point[0])
-#                        elif point[2] == 1:
-#                            if  point[1][1] >= buslist[point[0]].start[1]:
-#                                cross +=1
-#                                crossbus.append(point[0])
-#                for n, point in enumerate(comp_dirs[j][dir2]):
-#                    if n<b:
-#                        if point[2] == 0:
-#                            if  point[1][1] <= buslist[point[0]].end[1]:
-#                                cross +=1
-#                                crossbus.append(point[0])
-#                        elif point[2] == 1:
-#                            if  point[1][1] <= buslist[point[0]].start[1]:
-#                                cross +=1
-#                                crossbus.append(point[0])
-#                    elif n>=b:
-#                        if point[2] == 0:
-#                            if  point[1][1] >= buslist[point[0]].end[1]:
-#                                cross +=1
-#                                crossbus.append(point[0])
-#                        elif point[2] == 1:
-#                            if  point[1][1] >= buslist[point[0]].start[1]:
-#                                cross +=1
-#                                crossbus.append(point[0])
                 if cross<= min:
                     min = cross
                     w1 = a
