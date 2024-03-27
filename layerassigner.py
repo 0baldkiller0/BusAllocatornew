@@ -1,10 +1,16 @@
 
+#from curses import noecho
 from enum import EnumType
+import enum
+from re import S
+
+from numpy import busday_count
+from sympy import false, true
 import BusAllocator
 import random
 import matplotlib.pyplot as plt
 import copy
-
+import math
 
 # for package, not the hole board 
 class Bus:
@@ -1811,18 +1817,375 @@ def assign_layer(processed_circle):
                     del circle[index]
 
 
+def left_edge_algorithm(circle): #initial
+    pass
+
+def cross_status(a,b,c,d,half):#assume a<b;c<d
+    if(b<c):
+        return 1
+    if(d<a):
+        return 2
+    if((a<c)and(b>d)):
+        if((b-a)<half):
+            return 3
+        else:
+            return 1
+    if((c<a)and(d>b)):
+        if((d-c)<half):
+            return 4
+        else:
+            return 2
+    else: 
+        return 0
 
 
+def generate_interval(circle):  #generate multi connnection; 
+    buses = [[] for _ in range(len(buslist))]
+    for i,item in enumerate(circle):
+        busid = item[0]
+        buses[busid].append([i,item])       
+     
+    for item in enumerate(buses):
+        item.sort(key =lambda x:x[0])
+    return buses
+
+def gen_interval(circle):  #generate multi connnection; 
+    buses = [[] for _ in range(len(circle))]
+    for i,item in enumerate(circle):
+        busid = item[0]
+        comp1 = item[3]
+        for j in range(i+1, len(circle)):
+            busid2 = circle[j][0]
+            comp2 = circle[j][3]
+            if((busid == busid2) and (comp1 != comp2)):
+                buses[i].append([[i,j],busid,0])
+                buses[j].append([[j,i],busid,0])
+    return buses
+
+
+
+
+class node:
+    def __init__(self,interval = None,bus = None) -> None:
+        self.interval = interval
+        self.cover = []
+        self.bus = bus
+    def add_child(self,node):
+        self.cover.append(node)
+    def remove_child(self,bus,count):
+        for node in self.cover:
+            if(node.bus == bus):
+                self.cover.extend(node.cover)
+                self.cover.remove(node)
+                count -= 1
+            node.remove_child(bus,count)
+    def remove_redundancy(self,bus_len):
+        start = 0
+        end = len(self.cover) - 1
+        while(start <= end):
+            now = self.cover[start]
+            if(bus_len[now.bus] != 1):
+                self.cover.extend(now.cover)
+                self.cover.remove(now)
+                bus_len[now.bus] =  bus_len[now.bus] - 1
+                end = end - 1 + len(now.cover)
+            else:
+                self.cover[start].remove_redundancy(bus_len)
+                start = start + 1
+    def count_child(self):
+        if self.cover:
+            for item in self.cover:
+                return item.count_child() + 1
+        else:
+            return 0
+
+def single_circle(circle,length):
+    root = node()
+    buses = gen_interval(circle)
+    buses_c = copy.copy(buses)
+    start = 0
+    end = buses_c[start][0][0][1]
+    
     
 
+    while(start != (len(buses_c)-1)):
+        child = node([start,end],bus)
+        if(len(buses[start]) == 1):
+            length = length - 1
+        if(len(buses[end]) == 1):
+            length = length - 1
+        del buses[start][0]
+        del buses[end][0]
         
+        root.add_child(child)
+        local_circle = circle[start+1:end-1]
+        child.add_child(single_circle(local_circle,length))
+        start = end + 1
+        end = buses_c[start][0][0][1]
+    is_end = (len(buses) == 0)
+    return root
+
+def single_circle2(root,buses,st,ed,mul_bus):
+    start = st
+    out = False
+    while(start != ed):
+        for i,item in enumerate(buses[start:ed+1]):
+            start2 = i + start
+            end2 = start2
+            out = False
+            for item2 in item:
+                bus = item2[1]
+                if(item2[0][1] <= ed)and(item2[2]==0)and(item2[0][1]>start2):
+                    item2[2] = 1
+                    end2 = item2[0][1]
+                    out = True 
+                    break
+            if(out):        
+                break
+        if(out):
+            start = end2
+            for item in buses[end2]:
+                if (item[2] == 0) and (item[1] == bus):
+                    item[2] = 1
+                    break 
+            child = node([start2,end2],bus)        
+            root.add_child(child)
+            single_circle2(child,buses,start2 + 1,end2,mul_bus)
+        else:
+            return root
+    return root
+
+
+
+
+
+
+def traverse(node, bus, cover_count):
+        if not node:
+            return 0
+
+        # Count the covers for the current node
+        if node.bus == bus:
+            cover_count[bus].append([node.interval,len(node.cover)])
+
+        # Recursively count covers for child nodes
+        for child in node.cover:
+            traverse(child, bus, cover_count)
+
+
+def construct_tree(circle):
+    length = len(circle)
+    root = node()
+    buses = gen_interval(circle)
+    now = 0
+    layers = 0
+    mul_bus = [[] for _ in range(len(buslist))]
+    while(1):
+        branch = node(None,-1)
+        root.add_child(branch)
+        single_circle2(branch,buses,0,len(buses)-1,mul_bus)        
+        layers+=1
+        
+        for i in range(now,len(buses)-1):
+            flag = 0
+            for item in buses[i]:
+                if(item[2] == 0):
+                    flag = 1
+            if(flag):
+                pause = i
+                break
+        now = pause
+        if(flag == 0): 
+            break
+
+    for i in range(0,len(buslist)):    
+        traverse(root, i, mul_bus)
+    for i in range(0,len(buslist)):    
+        mul_bus[i].sort(key=lambda x:x[1])
+
+
+    return root,layers,mul_bus
+
+
+def maxDepth(root:node):
+    if(root.cover):
+        brans = []
+        for i in range(len(root.cover)):
+            brans.append(maxDepth(root.cover[i])+1)
+        return max(brans)
+    else:
+            return 0
+    
+
+def minDepth(root:node):
+    if(root):
+        brans = []
+        for i in range(len(root.cover)):
+            brans.append(maxDepth(root.cover[i])+1)
+        return max(brans)
+    else:
+            return 0
+        
+
+
+
+def optim(root:node,mul_bus):
+    for i,item in enumerate(mul_bus):
+        if len(item)!=1:
+            for j in range(0,len(item)-2):
+                root.remove_child(i,item[j][0])
+
+
+def optim2(root:node,mul_bus):
+    bus_lens = []
+    layers = len(root.cover)
+    for i,item in enumerate(mul_bus):
+        bus_lens.append(len(item))
+
+    brans = []
+    for i in range(0,len(root.cover)):
+        brans.append([i,maxDepth(root.cover[i])])
+    brans.sort(key = lambda x:x[1])
+
+    for item in brans:
+        branch = root.cover[item[0]]
+        branch.remove_redundancy(bus_lens)
+
+
+    start = 0
+    end = len(root.cover) - 1
+    while(start <= end):
+        branch = root.cover[start]
+        if(len(branch.cover) == 0):
+            root.cover.remove(branch)
+            layers -= 1
+            end = end - 1
+        else:
+            start = start + 1
+    
+    return root,layers
+
+def iscross(bus1,bus2):   # TODO：考虑bus粗细
+    if(bus1[1] == bus2[1]) or (bus1[1] == edge_switch(bus2[1],2)):
+        return false
+    else:
+        if bus1[1] == 0:
+            return  ((bus2[2][0]<= bus1[2][0] and bus2[3][0]>= bus1[2][0]) or (bus2[2][0]>= bus1[2][0] and bus2[3][0]<= bus1[2][0])) and bus1[2][1] <= bus2[2][1]
+
+        elif bus1[1] == 1 :
+            return  ((bus2[2][1]<= bus1[2][1] and bus2[3][1]>= bus1[2][1]) or (bus2[2][1]>= bus1[2][1] and bus2[3][1]<= bus1[2][1])) and bus1[2][0] <= bus2[2][0]
+            
+        elif bus1[1] == 2 :
+            return  ((bus2[2][0]<= bus1[2][0] and bus2[3][0]>= bus1[2][0]) or (bus2[2][0]>= bus1[2][0] and bus2[3][0]<= bus1[2][0])) and bus1[2][1] >= bus2[2][1]
+            
+        elif bus1[1] == 3 :
+            return  ((bus2[2][1]<= bus1[2][1] and bus2[3][1]>= bus1[2][1]) or (bus2[2][1]>= bus1[2][1] and bus2[3][1]<= bus1[2][1])) and bus1[2][0] >= bus2[2][0]
+             
+
+
+def convert(comps_dir,circle,buslist):#bus = Bus(i, [comp_list[start_comp], comp_list[end_comp]], [start_x, start_y], [end_x, end_y]) [10, [875, 119], 1, 4] [13, [598, 718], 0]
+    buses = [[[]for _ in range(4)] for _ in range(len(comps_dir))]
+    for i,item in enumerate(comps_dir):
+        for j in range(len(item)):
+            item2 = item[j]
+            for item3 in item2:
+                for k,point in enumerate(circle):
+                    if(point[1] == item3[1]):
+                        bus = item3[0]
+                        comp =  item3[2]
+                        break
+                if(comp == 0):
+                    buses[i][j].append([k,point[2],buslist[bus].start,item3[1]]) # +2 is bias to bus position
+                elif(comp == 1):
+                    buses[i][j].append([k,point[2],buslist[bus].end,item3[1]]) # +2 is bias to bus position
+    return buses
+
+class covering_gragh:
+    def __init__(self,buses) -> None:
+        self.gragh = self.construct(buses)
+
+    def construct(self,buses):
+        gragh = [[] for _ in range(len(buses))]
+        for i,item in enumerate(buses): #comp
+            dim = len(item[0]) + len(item[1]) +len(item[2]) +len(item[3])
+            gragh[i] = [[0 for _ in range(dim)]for _ in range(dim)] 
+            pre = 0
+            for j,item2 in enumerate(item):#dir
+                for a1,item3 in enumerate(item2):#bus
+                    pre2 = pre + len(item2)
+                    for k in range(j+1,4): 
+                        for b1,item4 in enumerate(item[k]):
+                            a = pre + a1
+                            b = pre2 + b1
+                            if(iscross(item3,item4)):
+                                gragh[i][a][b] = 1
+                                gragh[i][b][a] = 1
+                            else:
+                                gragh[i][a][b] = 0
+                                gragh[i][b][a] = 0
+                        pre2 = pre2 + len(item[k])        
+                pre = pre + len(item2)
+        
+        
+        return gragh
+        
+            
+def is_safe(graph, color, c, v):
+    """
+    检查给定点v的颜色c是否安全，即没有与v相邻的顶点有相同的颜色。
+    """
+    for i in range(len(graph)):
+        if graph[v][i] == 1 and color[i] == c:
+            return False
+    return True
+
+def graph_coloring_util(graph, m, color, v):
+    """
+    图着色的回溯算法实现。稀疏矩阵
+    """
+    if v == len(graph):
+        return True
+
+    for c in range(1, m+1):
+        if is_safe(graph, color, c, v):
+            color[v] = c
+            if graph_coloring_util(graph, m, color, v+1):
+                return True
+            color[v] = 0
+
+def graph_coloring(graph, m):
+    """
+    图着色函数，初始化颜色并调用回溯算法。
+    """
+    color = [0] * len(graph)
+    if not graph_coloring_util(graph, m, color, 0):
+        return None
+    return color
+
+# 示例图（邻接矩阵表示）
+#graph = [
+#    [0, 1, 1, 1],
+#    [1, 0, 1, 0],
+#    [1, 1, 0, 1],
+#    [1, 0, 1, 0]
+#]
+#
+## 可用的颜色数
+#m = 3
+#
+## 应用图着色算法
+#colors = graph_coloring(graph, m)
+#colors
+
+
+
     
 if __name__ == '__main__':
     Bsize_x = 1000
     Bsize_y = 1000
     packagenum = 1
-    busnum = 15
-    compnum = 5
+    busnum = 9
+    compnum = 4
     comppair_in_bus = {}
     buslist_in_comp = {}
     comps_in_pkg = {}
@@ -1938,3 +2301,20 @@ if __name__ == '__main__':
     segs = split(cpts,comp_dirs)
     circle = constructcircle2(segs,comps,cpts)
     print(circle)
+    tree,layers,bus = construct_tree(circle)
+    root,layers = optim2(tree,bus)
+    print(root)
+    bsss = convert(comp_dirs,circle,buslist)
+    cv = covering_gragh(bsss)
+    cv.gragh
+    inner = []
+    for gh in cv.gragh:
+        m = int(len(gh))
+        while 1:
+           if graph_coloring(gh,m) == None:
+                m = m + 1
+                break
+           else:
+               m = m - 1
+        inner.append(m)
+    print(inner)
